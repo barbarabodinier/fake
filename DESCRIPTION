@@ -1,0 +1,38 @@
+Package: fake
+Title: Flexible Data Simulation Using The Multivariate Normal Distribution
+Version: 0.0.0.9000
+Author: Barbara Bodinier [aut, cre]
+Maintainer: Barbara Bodinier <b.bodinier@imperial.ac.uk>
+Description: Data simulation using the multivariate Normal distribution.
+License: GPL (>= 3)
+Language: en-GB
+Encoding: UTF-8
+RoxygenNote: 7.2.0
+Imports: 
+    glassoFast (>= 1.0.0),
+    glmnet,
+    grDevices,
+    huge,
+    igraph,
+    MASS,
+    mclust,
+    parallel,
+    Rdpack,
+    withr (>= 2.4.0)
+Suggests:
+    cluster,
+    corpcor,
+    dbscan,
+    elasticnet,
+    gglasso,
+    mixOmics,
+    nnet,
+    plotrix,
+    RCy3,
+    rmarkdown,
+    sgPLS,
+    survival (>= 3.2.13),
+    testthat (>= 3.0.0),
+    visNetwork
+Config/testthat/edition: 3
+RdMacros: Rdpack
