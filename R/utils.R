@@ -10,12 +10,10 @@
 #' @return A vector of overlapping arguments.
 #'
 #' @examples
-#' if (requireNamespace("sgPLS", quietly = TRUE)) {
-#'   MatchingArguments(
-#'     extra_args = list(scale = TRUE, lambda = 1),
-#'     FUN = sgPLS::sPLS
-#'   )
-#' }
+#' MatchingArguments(
+#'   extra_args = list(Sigma = 1, test = FALSE),
+#'   FUN = MASS::mvrnorm
+#' )
 #' @export
 MatchingArguments <- function(extra_args, FUN) {
   if ("..." %in% names(formals(FUN))) {

@@ -89,7 +89,7 @@ summary.simulation_regression <- function(object, ...) {
 
 #' @export
 plot.simulation_graphical_model <- function(x, ...) {
-  mygraph=igraph::graph_from_adjacency_matrix(x$theta, mode = "undirected")
+  mygraph <- igraph::graph_from_adjacency_matrix(x$theta, mode = "undirected")
 
   # Formatting vertices
   mydegrees <- igraph::degree(mygraph)
@@ -110,7 +110,7 @@ plot.simulation_graphical_model <- function(x, ...) {
 
 #' @export
 plot.adjacency_matrix <- function(x, ...) {
-  mygraph=igraph::graph_from_adjacency_matrix(x, mode = "undirected")
+  mygraph <- igraph::graph_from_adjacency_matrix(x, mode = "undirected")
 
   # Formatting vertices
   mydegrees <- igraph::degree(mygraph)
@@ -153,7 +153,7 @@ plot.simulation_components <- function(x, ...) {
 
 #' @export
 plot.simulation_regression <- function(x, ...) {
-  mygraph=igraph::graph_from_adjacency_matrix(x$adjacency, mode = "undirected")
+  mygraph <- igraph::graph_from_adjacency_matrix(x$adjacency, mode = "undirected")
 
   # Formatting vertices
   mydegrees <- igraph::degree(mygraph)

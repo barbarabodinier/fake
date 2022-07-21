@@ -20,10 +20,8 @@ and arguments from function \code{FUN}. If \code{FUN} is taking \code{...} as
 input, this function returns \code{extra_args}.
 }
 \examples{
-if (requireNamespace("sgPLS", quietly = TRUE)) {
-  MatchingArguments(
-    extra_args = list(scale = TRUE, lambda = 1),
-    FUN = sgPLS::sPLS
-  )
-}
+MatchingArguments(
+  extra_args = list(Sigma = 1, test = FALSE),
+  FUN = MASS::mvrnorm
+)
 }
