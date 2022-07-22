@@ -1,3 +1,8 @@
 ^fake\.Rproj$
 ^\.Rproj\.user$
 ^\.github$
+^LICENSE\.md$
+^LICENSE\.Rmd$
+^README\.Rmd$
+^CRAN-SUBMISSION$
+^cran-comments.md

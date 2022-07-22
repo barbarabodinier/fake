@@ -923,7 +923,7 @@ SimulateAdjacency <- function(pk = 10,
   colnames(theta) <- rownames(theta) <- paste0("var", 1:ncol(theta))
 
   # Defining the class
-  class(theta) <- "adjacency_matrix"
+  class(theta) <- c("matrix", "adjacency_matrix")
 
   return(theta)
 }
