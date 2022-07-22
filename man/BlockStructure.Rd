@@ -13,18 +13,22 @@ BlockStructure(pk)
 A symmetric matrix of size \code{length(pk))}.
 }
 \description{
-Generates a symmetric matrix encoding the block structure from the numbers of
-variables in each group. This function can be used to visualise block IDs.
+Generates a symmetric matrix of size (\code{length(pk)} x \code{length(pk)})
+where entries correspond to block indices. This function can be used to
+visualise block indices of a matrix generated with \code{\link{BlockMatrix}}.
 }
 \examples{
-# Example with 2 groups
-mat <- BlockStructure(pk = rep(10, 2))
+# Example 1
+BlockMatrix(pk = c(2, 3))
+BlockStructure(pk = c(2, 3))
 
-# Example with 5 groups
-mat <- BlockStructure(pk = rep(10, 5))
+# Example 2
+BlockMatrix(pk = c(2, 3, 2))
+BlockStructure(pk = c(2, 3, 2))
 }
 \seealso{
-Other multi-block functions: 
+Other block matrix functions: 
+\code{\link{BlockDiagonal}()},
 \code{\link{BlockMatrix}()}
 }
-\concept{multi-block functions}
+\concept{block matrix functions}

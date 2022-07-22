@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{HugeAdjacency}
 \alias{HugeAdjacency}
-\title{Simulation of an undirected graph}
+\title{Simulation of undirected graph}
 \usage{
 HugeAdjacency(pk = 10, topology = "random", nu = 0.1, ...)
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateComponents}
 \alias{SimulateComponents}
-\title{Simulation of sparse orthogonal components}
+\title{Data simulation from sparse Principal Component Analysis}
 \usage{
 SimulateComponents(
   n = 100,
@@ -111,30 +111,25 @@ A list with: \item{data}{simulated data with \code{n} observation and
   matrix. Only returned if \code{output_matrices=TRUE}.}
 }
 \description{
-Simulates variables following a multivariate Normal distribution that could
-be obtained from a sparse linear combination of orthogonal latent variables.
-This generates blocks of mutually independent variables, where all variables
-from a block can be obtained from a linear combination of the same latent
-variables. The latent variables would correspond to Principal Components from
-a sparse Principal Component Analysis. The loadings coefficients, their
-support, and the proportions of explained variance by each of the latent
-variables are returned. This function can be used to evaluate the performance
-of sparse Principal Component Analysis algorithms.
+Simulates data with with independent groups of variables.
 }
 \details{
 The data is simulated from a centered multivariate Normal
   distribution with a block-diagonal covariance matrix. Independence between
   variables from the different blocks ensures that sparse orthogonal
-  components can be generated. The block-diagonal (partial) correlation
-  matrix is obtained using a graph structure encoding the conditional
-  independence between variables. The orthogonal latent variables are
-  obtained from eigendecomposition of the true correlation matrix. The sparse
-  eigenvectors contain the weights of the linear combination of variables to
-  construct the latent variable (loadings coefficients). The proportion of
-  explained variance by each of the latent variable is computed from
-  eigenvalues. As latent variables are defined from the true correlation
-  matrix, the number of sparse orthogonal components is not limited by the
-  number of observations and is equal to \code{sum(pk)}.
+  components can be generated.
+
+  The block-diagonal partial correlation matrix is obtained using a graph
+  structure encoding the conditional independence between variables. The
+  orthogonal latent variables are obtained from eigendecomposition of the
+  true correlation matrix. The sparse eigenvectors contain the weights of the
+  linear combination of variables to construct the latent variable (loadings
+  coefficients). The proportion of explained variance by each of the latent
+  variable is computed from eigenvalues.
+
+  As latent variables are defined from the true correlation matrix, the
+  number of sparse orthogonal components is not limited by the number of
+  observations and is equal to \code{sum(pk)}.
 }
 \examples{
 # Simulation of 3 components with high e.v.
@@ -159,6 +154,9 @@ simul <- SimulateComponents(
 )
 plot(simul)
 plot(cumsum(simul$ev), ylim = c(0, 1), las = 1)
+}
+\references{
+\insertRef{ourstabilityselection}{fake}
 }
 \seealso{
 \code{\link{MakePositiveDefinite}}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateGraphical}
 \alias{SimulateGraphical}
-\title{Simulation of data with underlying graph structure}
+\title{Data simulation from a Gaussian Graphical Model}
 \usage{
 SimulateGraphical(
   n = 100,
@@ -136,12 +136,26 @@ A list with: \item{data}{simulated data with \code{n} observation and
   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
 }
 \description{
-Simulates (i) a graph, and (ii) multivariate Normal data for which the graph
-structure is encoded in the nonzero entries of the true partial correlation
-matrix. This procedure ensures that the conditional independence structure
-between the variables is encoded in the simulated graph. The outputs of this
-function can be used to evaluate the ability of a graphical model to identify
-edges of a conditional independence graph.
+Simulates data from a Gaussian Graphical Model (GGM).
+}
+\details{
+The simulation is done in two steps with (i) generation of a graph,
+  and (ii) sampling from multivariate Normal distribution for which nonzero
+  entries in the partial correlation matrix correspond to the edges of the
+  simulated graph. This procedure ensures that the conditional independence
+  structure between the variables corresponds to the simulated graph.
+
+  Step 1 is done using \code{\link{SimulateAdjacency}}.
+
+  In Step 2, the precision matrix (inverse of the covariance matrix) is
+  simulated using \code{\link{SimulatePrecision}} so that (i) its nonzero
+  entries correspond to edges in the graph simulated in Step 1, and (ii) it
+  is positive definite (see \code{\link{MakePositiveDefinite}}). The inverse
+  of the precision matrix is used as covariance matrix to simulate data from
+  a multivariate Normal distribution.
+
+  The outputs of this function can be used to evaluate the ability of a
+  graphical model to recover the conditional independence structure.
 }
 \examples{
 # Simulation of random graph with 50 nodes
@@ -221,6 +235,9 @@ Heatmap(mycor,
   col = c("darkblue", "white", "firebrick3"),
   legend_range = c(-1, 1), legend_length = 50, legend = FALSE
 )
+}
+\references{
+\insertRef{ourstabilityselection}{fake}
 }
 \seealso{
 \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},

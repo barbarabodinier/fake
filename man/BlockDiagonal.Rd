@@ -16,6 +16,15 @@ A binary block diagonal matrix.
 Generates a binary block diagonal matrix.
 }
 \examples{
-# Small example
-mat <- BlockDiagonal(pk = c(2, 3))
+# Example 1
+BlockDiagonal(pk = c(2, 3))
+
+# Example 2
+BlockDiagonal(pk = c(2, 3, 2))
 }
+\seealso{
+Other block matrix functions: 
+\code{\link{BlockMatrix}()},
+\code{\link{BlockStructure}()}
+}
+\concept{block matrix functions}

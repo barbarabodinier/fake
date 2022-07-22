@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateRegression}
 \alias{SimulateRegression}
-\title{Simulation of predictors and associated outcome}
+\title{Data simulation from multivariate regression}
 \usage{
 SimulateRegression(
   n = 100,
@@ -164,21 +164,43 @@ A list with: \item{xdata}{simulated predictor data.}
   (\code{outcome}).}
 }
 \description{
-Simulates (i) a matrix \code{xdata} of \code{n} observations for
-\code{sum(pk)} normally distributed predictor variables, (ii) a matrix
-\code{zdata} of \code{length(pk)} orthogonal latent variables, and (iii) a
-matrix \code{ydata} of \code{length(pk)} outcome variables. The conditional
-independence structure between the predictors and latent variables is encoded
-in a precision matrix, where the diagonal entries corresponding to latent
-variables are tuned to reach a user-defined expected proportion of explained
-variance. To ensure that latent variables are orthogonal (these can be
-interpreted as the Principal Components of a Partial Least Squares model),
-the predictors contributing to their definition are taken from independent
-blocks of variables. The outcome variables are then obtained from a linear
-combination of the latent variables. The outputs of this function can be used
-to evaluate the ability of variable selection algorithms to identify, among
-the variables in \code{xdata}, relevant predictors of the outcome variables
-in \code{ydata}.
+Simulates data with outcome(s) and predictors, where only a subset of the
+predictors actually contributes to the definition of the outcome(s).
+}
+\details{
+For a univariate outcome (\code{length(pk)=1}), the simulation is
+  done in four steps where (i) predictors contributing to outcome definition
+  are randomly sampled (with probability \code{nu_xz} for a given predictor
+  to be picked), (ii) the conditional independence structure between the
+  predictors is simulated (with probability \code{nu_within} for a given pair
+  of predictors to be correlated, conditionally on all other variables),
+  (iii) generation of a precision matrix (inverse covariance matrix) for all
+  variables, where nonzero entries correspond to the predictors contributing
+  to outcome definition or conditional correlation between the predictors,
+  and (iv) data for both predictors and outcome is simulated from a single
+  multivariate Normal distribution using the inverse precision matrix as
+  covariance matrix.
+
+  To ensure that the generated precision matrix \eqn{\Omega} is positive
+  definite, the diagonal entries are defined as described in
+  \code{\link{MakePositiveDefinite}}. The conditional variance of the outcome
+  \eqn{\Omega_{YY}} is chosen so that the proportion of variance in the
+  outcome that is explained by the predictors is \code{ev_xz}.
+
+  For a multivariate outcome (\code{length(pk)>1}), we introduce independent
+  groups of predictors and orthogonal latent variables (groups are defined in
+  \code{pk}). Each latent variable is defined as a function of variables
+  belonging to one group of predictors. The precision matrix is defined as
+  described above for univariate outcomes. Subject to the re-ordering of its
+  rows, this precision matrix is block-diagonal, encoding the independence
+  between sets of variables made of (i) the groups of predictors, and (ii)
+  their corresponding latent variable. The outcome variables are then
+  constructed from a linear combination of the latent variables, allowing for
+  contributing predictors belonging to different groups.
+
+  The use of latent variables in the multivariate case ensures that we can
+  control the proportion of variance in the latent variable explained by the
+  predictors (\code{ev_xz}).
 }
 \examples{
 oldpar <- par(no.readonly = TRUE)
@@ -234,6 +256,9 @@ print(simul)
 apply(simul$ydata, 2, sum)
 
 par(oldpar)
+}
+\references{
+\insertRef{ourstabilityselection}{fake}
 }
 \seealso{
 Other simulation functions: 

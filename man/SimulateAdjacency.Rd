@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateAdjacency}
 \alias{SimulateAdjacency}
-\title{Simulation of an undirected graph with block structure}
+\title{Simulation of undirected graph with block structure}
 \usage{
 SimulateAdjacency(
   pk = 10,
@@ -51,17 +51,30 @@ provided in \code{implementation}.}
 }
 \value{
 A symmetric adjacency matrix encoding an unweighted, undirected graph
-  with no self-loops, and with different densities in diagonal compared to off-diagonal
-blocks.
+  with no self-loops, and with different densities in diagonal compared to
+  off-diagonal blocks.
 }
 \description{
 Simulates the adjacency matrix of an unweighted, undirected graph with no
-self-loops, and with different densities in diagonal compared to off-diagonal
-blocks.
+self-loops. If \code{topology="random"}, different densities in diagonal
+(\code{nu_within}) compared to off-diagonal (\code{nu_between}) blocks can be
+used.
+}
+\details{
+Random graphs are simulated using the Erdos-Renyi algorithm.
+  Scale-free graphs are simulated using a preferential attachement algorithm.
+  More details are provided in \code{\link[huge]{huge.generator}}.
 }
 \examples{
 # Simulation of a scale-free graph with 20 nodes
 adjacency <- SimulateAdjacency(pk = 20, topology = "scale-free")
+plot(adjacency)
+
+# Simulation of a random graph with three connected components
+adjacency <- SimulateAdjacency(
+  pk = rep(10, 3),
+  nu_within = 0.7, nu_between = 0
+)
 plot(adjacency)
 
 # Simulation of a random graph with block structure
@@ -83,6 +96,11 @@ simul <- SimulateAdjacency(pk = 10, implementation = CentralNode)
 plot(simul) # star
 simul <- SimulateAdjacency(pk = 10, implementation = CentralNode, hub = 2)
 plot(simul) # variable 2 is the central node
+}
+\references{
+\insertRef{ourstabilityselection}{fake}
+
+\insertRef{huge}{fake}
 }
 \seealso{
 Other simulation functions: 

@@ -1,11 +1,6 @@
-#' Simulation of data with underlying graph structure
+#' Data simulation from a Gaussian Graphical Model
 #'
-#' Simulates (i) a graph, and (ii) multivariate Normal data for which the graph
-#' structure is encoded in the nonzero entries of the true partial correlation
-#' matrix. This procedure ensures that the conditional independence structure
-#' between the variables is encoded in the simulated graph. The outputs of this
-#' function can be used to evaluate the ability of a graphical model to identify
-#' edges of a conditional independence graph.
+#' Simulates data from a Gaussian Graphical Model (GGM).
 #'
 #' @param n number of observations in the simulated data.
 #' @param pk vector of the number of variables per group in the simulated data.
@@ -89,6 +84,7 @@
 #'
 #' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
 #'   \code{\link{Contrast}}
+#'
 #' @family simulation functions
 #'
 #' @return A list with: \item{data}{simulated data with \code{n} observation and
@@ -99,6 +95,26 @@
 #'   \item{sigma}{ simulated (true) covariance matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{u}{value of the constant u used for the
 #'   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
+#'
+#' @details The simulation is done in two steps with (i) generation of a graph,
+#'   and (ii) sampling from multivariate Normal distribution for which nonzero
+#'   entries in the partial correlation matrix correspond to the edges of the
+#'   simulated graph. This procedure ensures that the conditional independence
+#'   structure between the variables corresponds to the simulated graph.
+#'
+#'   Step 1 is done using \code{\link{SimulateAdjacency}}.
+#'
+#'   In Step 2, the precision matrix (inverse of the covariance matrix) is
+#'   simulated using \code{\link{SimulatePrecision}} so that (i) its nonzero
+#'   entries correspond to edges in the graph simulated in Step 1, and (ii) it
+#'   is positive definite (see \code{\link{MakePositiveDefinite}}). The inverse
+#'   of the precision matrix is used as covariance matrix to simulate data from
+#'   a multivariate Normal distribution.
+#'
+#'   The outputs of this function can be used to evaluate the ability of a
+#'   graphical model to recover the conditional independence structure.
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
 #' # Simulation of random graph with 50 nodes
@@ -253,17 +269,9 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
 }
 
 
-#' Simulation of sparse orthogonal components
+#' Data simulation from sparse Principal Component Analysis
 #'
-#' Simulates variables following a multivariate Normal distribution that could
-#' be obtained from a sparse linear combination of orthogonal latent variables.
-#' This generates blocks of mutually independent variables, where all variables
-#' from a block can be obtained from a linear combination of the same latent
-#' variables. The latent variables would correspond to Principal Components from
-#' a sparse Principal Component Analysis. The loadings coefficients, their
-#' support, and the proportions of explained variance by each of the latent
-#' variables are returned. This function can be used to evaluate the performance
-#' of sparse Principal Component Analysis algorithms.
+#' Simulates data with with independent groups of variables.
 #'
 #' @inheritParams SimulateGraphical
 #' @param adjacency optional binary and symmetric adjacency matrix encoding the
@@ -276,16 +284,19 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
 #' @details The data is simulated from a centered multivariate Normal
 #'   distribution with a block-diagonal covariance matrix. Independence between
 #'   variables from the different blocks ensures that sparse orthogonal
-#'   components can be generated. The block-diagonal (partial) correlation
-#'   matrix is obtained using a graph structure encoding the conditional
-#'   independence between variables. The orthogonal latent variables are
-#'   obtained from eigendecomposition of the true correlation matrix. The sparse
-#'   eigenvectors contain the weights of the linear combination of variables to
-#'   construct the latent variable (loadings coefficients). The proportion of
-#'   explained variance by each of the latent variable is computed from
-#'   eigenvalues. As latent variables are defined from the true correlation
-#'   matrix, the number of sparse orthogonal components is not limited by the
-#'   number of observations and is equal to \code{sum(pk)}.
+#'   components can be generated.
+#'
+#'   The block-diagonal partial correlation matrix is obtained using a graph
+#'   structure encoding the conditional independence between variables. The
+#'   orthogonal latent variables are obtained from eigendecomposition of the
+#'   true correlation matrix. The sparse eigenvectors contain the weights of the
+#'   linear combination of variables to construct the latent variable (loadings
+#'   coefficients). The proportion of explained variance by each of the latent
+#'   variable is computed from eigenvalues.
+#'
+#'   As latent variables are defined from the true correlation matrix, the
+#'   number of sparse orthogonal components is not limited by the number of
+#'   observations and is equal to \code{sum(pk)}.
 #'
 #' @return A list with: \item{data}{simulated data with \code{n} observation and
 #'   \code{sum(pk)} variables.} \item{loadings}{loadings coefficients of the
@@ -299,7 +310,10 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
 #'   matrix. Only returned if \code{output_matrices=TRUE}.}
 #'
 #' @seealso \code{\link{MakePositiveDefinite}}
+#'
 #' @family simulation functions
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
 #' # Simulation of 3 components with high e.v.
@@ -385,23 +399,10 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 }
 
 
-#' Simulation of predictors and associated outcome
+#' Data simulation from multivariate regression
 #'
-#' Simulates (i) a matrix \code{xdata} of \code{n} observations for
-#' \code{sum(pk)} normally distributed predictor variables, (ii) a matrix
-#' \code{zdata} of \code{length(pk)} orthogonal latent variables, and (iii) a
-#' matrix \code{ydata} of \code{length(pk)} outcome variables. The conditional
-#' independence structure between the predictors and latent variables is encoded
-#' in a precision matrix, where the diagonal entries corresponding to latent
-#' variables are tuned to reach a user-defined expected proportion of explained
-#' variance. To ensure that latent variables are orthogonal (these can be
-#' interpreted as the Principal Components of a Partial Least Squares model),
-#' the predictors contributing to their definition are taken from independent
-#' blocks of variables. The outcome variables are then obtained from a linear
-#' combination of the latent variables. The outputs of this function can be used
-#' to evaluate the ability of variable selection algorithms to identify, among
-#' the variables in \code{xdata}, relevant predictors of the outcome variables
-#' in \code{ydata}.
+#' Simulates data with outcome(s) and predictors, where only a subset of the
+#' predictors actually contributes to the definition of the outcome(s).
 #'
 #' @inheritParams SimulateGraphical
 #' @param pk vector with the number of predictors in each independent block of
@@ -483,7 +484,43 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #'   (\code{var}), \code{zdata} (\code{latent}) and \code{ydata}
 #'   (\code{outcome}).}
 #'
+#' @details For a univariate outcome (\code{length(pk)=1}), the simulation is
+#'   done in four steps where (i) predictors contributing to outcome definition
+#'   are randomly sampled (with probability \code{nu_xz} for a given predictor
+#'   to be picked), (ii) the conditional independence structure between the
+#'   predictors is simulated (with probability \code{nu_within} for a given pair
+#'   of predictors to be correlated, conditionally on all other variables),
+#'   (iii) generation of a precision matrix (inverse covariance matrix) for all
+#'   variables, where nonzero entries correspond to the predictors contributing
+#'   to outcome definition or conditional correlation between the predictors,
+#'   and (iv) data for both predictors and outcome is simulated from a single
+#'   multivariate Normal distribution using the inverse precision matrix as
+#'   covariance matrix.
+#'
+#'   To ensure that the generated precision matrix \eqn{\Omega} is positive
+#'   definite, the diagonal entries are defined as described in
+#'   \code{\link{MakePositiveDefinite}}. The conditional variance of the outcome
+#'   \eqn{\Omega_{YY}} is chosen so that the proportion of variance in the
+#'   outcome that is explained by the predictors is \code{ev_xz}.
+#'
+#'   For a multivariate outcome (\code{length(pk)>1}), we introduce independent
+#'   groups of predictors and orthogonal latent variables (groups are defined in
+#'   \code{pk}). Each latent variable is defined as a function of variables
+#'   belonging to one group of predictors. The precision matrix is defined as
+#'   described above for univariate outcomes. Subject to the re-ordering of its
+#'   rows, this precision matrix is block-diagonal, encoding the independence
+#'   between sets of variables made of (i) the groups of predictors, and (ii)
+#'   their corresponding latent variable. The outcome variables are then
+#'   constructed from a linear combination of the latent variables, allowing for
+#'   contributing predictors belonging to different groups.
+#'
+#'   The use of latent variables in the multivariate case ensures that we can
+#'   control the proportion of variance in the latent variable explained by the
+#'   predictors (\code{ev_xz}).
+#'
 #' @family simulation functions
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
 #' oldpar <- par(no.readonly = TRUE)
@@ -763,67 +800,39 @@ SimulateRegression <- function(n = 100, pk = 10, N = 3,
 }
 
 
-#' Simulation of an undirected graph
-#'
-#' Simulates the adjacency matrix encoding an unweighted, undirected graph with
-#' no self-loops.
-#'
-#' @inheritParams SimulateGraphical
-#' @param pk number of nodes.
-#' @param nu expected density (number of edges over the number of node pairs) of
-#'   the graph. This argument is only used for \code{topology="random"} or
-#'   \code{topology="cluster"} (see argument \code{prob} in
-#'   \code{\link[huge]{huge.generator}}).
-#' @param ... additional arguments to be passed to
-#'   \code{\link[huge]{huge.generator}}.
-#'
-#' @return A symmetric adjacency matrix encoding an unweighted, undirected graph
-#'   with no self-loops.
-#'
-#' @keywords internal
-HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
-  # Storing extra arguments
-  extra_args <- list(...)
-
-  # Extracting relevant extra arguments
-  tmp_extra_args <- MatchingArguments(extra_args = extra_args, FUN = huge::huge.generator)
-  tmp_extra_args <- tmp_extra_args[!names(tmp_extra_args) %in% c("n", "d", "prob", "graph", "verbose")]
-
-  # Running simulation model
-  mymodel <- do.call(huge::huge.generator, args = c(
-    list(
-      n = 2, d = sum(pk), prob = nu,
-      graph = topology, verbose = FALSE
-    ),
-    tmp_extra_args
-  ))
-  theta <- as.matrix(mymodel$theta)
-
-  # Re-organising the variables to avoid having centrality related to variable ID (e.g. for scale-free models)
-  ids <- sample(ncol(theta))
-  theta <- theta[ids, ids]
-
-  return(theta)
-}
-
-
-#' Simulation of an undirected graph with block structure
+#' Simulation of undirected graph with block structure
 #'
 #' Simulates the adjacency matrix of an unweighted, undirected graph with no
-#' self-loops, and with different densities in diagonal compared to off-diagonal
-#' blocks.
+#' self-loops. If \code{topology="random"}, different densities in diagonal
+#' (\code{nu_within}) compared to off-diagonal (\code{nu_between}) blocks can be
+#' used.
 #'
 #' @inheritParams SimulateGraphical
 #'
 #' @return A symmetric adjacency matrix encoding an unweighted, undirected graph
-#'   with no self-loops, and with different densities in diagonal compared to off-diagonal
-#' blocks.
+#'   with no self-loops, and with different densities in diagonal compared to
+#'   off-diagonal blocks.
+#'
+#' @details Random graphs are simulated using the Erdos-Renyi algorithm.
+#'   Scale-free graphs are simulated using a preferential attachement algorithm.
+#'   More details are provided in \code{\link[huge]{huge.generator}}.
 #'
 #' @family simulation functions
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
+#'
+#' \insertRef{huge}{fake}
 #'
 #' @examples
 #' # Simulation of a scale-free graph with 20 nodes
 #' adjacency <- SimulateAdjacency(pk = 20, topology = "scale-free")
+#' plot(adjacency)
+#'
+#' # Simulation of a random graph with three connected components
+#' adjacency <- SimulateAdjacency(
+#'   pk = rep(10, 3),
+#'   nu_within = 0.7, nu_between = 0
+#' )
 #' plot(adjacency)
 #'
 #' # Simulation of a random graph with block structure
@@ -847,8 +856,10 @@ HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
 #' plot(simul) # variable 2 is the central node
 #' @export
 SimulateAdjacency <- function(pk = 10,
-                              implementation = HugeAdjacency, topology = "random",
-                              nu_within = 0.1, nu_between = 0, ...) {
+                              implementation = HugeAdjacency,
+                              topology = "random",
+                              nu_within = 0.1,
+                              nu_between = 0, ...) {
   # Storing all arguments
   args <- c(mget(ls()), list(...))
 
@@ -918,521 +929,45 @@ SimulateAdjacency <- function(pk = 10,
 }
 
 
-#' Simulation of symmetric matrix with block structure
+#' Simulation of undirected graph
 #'
-#' Simulates a symmetric matrix with block structure. Matrix entries are
-#' sampled from (i) a discrete uniform distribution taking values in
-#' \code{v_within} (for entries in the diagonal block) or \code{v_between} (for
-#' entries in off-diagonal blocks) if \code{continuous=FALSE}, or (ii) a
-#' continuous uniform distribution taking values in the range given by
-#' \code{v_within} or \code{v_between} if \code{continuous=TRUE}.
-#'
-#' @param pk vector of the number of variables per group, defining the block
-#'   structure.
-#' @param v_within vector defining the (range of) nonzero entries in the
-#'   diagonal blocks. If \code{continuous=FALSE}, \code{v_within} is the set of
-#'   possible values. If \code{continuous=FALSE}, \code{v_within} is the range
-#'   of possible values.
-#' @param v_between vector defining the (range of) nonzero entries in the
-#'   off-diagonal blocks. If \code{continuous=FALSE}, \code{v_between} is the
-#'   set of possible precision values. If \code{continuous=FALSE},
-#'   \code{v_between} is the range of possible precision values. This argument
-#'   is only used if \code{length(pk)>1}.
-#' @param v_sign vector of possible signs for matrix entries. Possible
-#'   inputs are: \code{-1} for negative entries only, \code{1} for
-#'   positive entries only, or \code{c(-1, 1)} for both positive and
-#'   negative entries.
-#' @param continuous logical indicating whether to sample precision values from
-#'   a uniform distribution between the minimum and maximum values in
-#'   \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=TRUE}) or from proposed values in \code{v_within}
-#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=FALSE}).
-#'
-#' @return A symmetric matrix with uniformly distributed entries sampled from
-#'   different distributions for diagonal and off-diagonal blocks.
-#'
-#' @keywords internal
-SimulateSymmetricMatrix <- function(pk = 10,
-                                    v_within = c(0.5, 1), v_between = c(0, 0.1),
-                                    v_sign = c(-1, 1), continuous = FALSE) {
-  # Creating matrix with block indices
-  bigblocks <- BlockMatrix(pk)
-  bigblocks_vect <- bigblocks[upper.tri(bigblocks)]
-
-  # Making as factor to allow for groups with 1 variable (for clustering)
-  bigblocks_vect <- factor(bigblocks_vect, levels = seq(1, max(bigblocks)))
-  block_ids <- unique(as.vector(bigblocks))
-
-  # Building absolute v matrix
-  v <- bigblocks
-  v_vect <- v[upper.tri(v)]
-  for (k in block_ids) {
-    if (k %in% v_vect) {
-      if (k %in% unique(diag(bigblocks))) {
-        if (continuous) {
-          v_vect[bigblocks_vect == k] <- stats::runif(sum(bigblocks_vect == k), min = min(v_within), max = max(v_within))
-        } else {
-          v_vect[bigblocks_vect == k] <- base::sample(v_within, size = sum(bigblocks_vect == k), replace = TRUE)
-        }
-      } else {
-        if (continuous) {
-          v_vect[bigblocks_vect == k] <- stats::runif(sum(bigblocks_vect == k), min = min(v_between), max = max(v_between))
-        } else {
-          v_vect[bigblocks_vect == k] <- base::sample(v_between, size = sum(bigblocks_vect == k), replace = TRUE)
-        }
-      }
-    }
-  }
-
-  # Sampling the sign of precision entries
-  v_vect <- v_vect * base::sample(sort(unique(v_sign)), size = length(v_vect), replace = TRUE)
-
-  # Building v matrix
-  diag(v) <- 0
-  v[upper.tri(v)] <- v_vect
-  v[lower.tri(v)] <- 0
-  v <- v + t(v)
-
-  return(v)
-}
-
-
-#' Simulation of a precision matrix
-#'
-#' Simulates a sparse precision matrix from an adjacency matrix \code{theta}
-#' encoding a conditional independence graph. Zero entries in the precision
-#' matrix indicate pairwise conditional independence. Diagonal entries can be
-#' tuned to (i) maximise the contrast of the correlation matrix, or (ii) reach a
-#' user-defined proportion of explained variance by the first Principal
-#' Component (see \code{\link{MakePositiveDefinite}}).
+#' Simulates the adjacency matrix encoding an unweighted, undirected graph with
+#' no self-loops.
 #'
 #' @inheritParams SimulateGraphical
-#' @param theta binary and symmetric adjacency matrix encoding the conditional
-#'   independence structure.
-#' @param scale logical indicating if the proportion of explained variance by
-#'   PC1 should be computed from the correlation (\code{scale=TRUE}) or
-#'   covariance (\code{scale=FALSE}) matrix.
+#' @param pk number of nodes.
+#' @param nu expected density (number of edges over the number of node pairs) of
+#'   the graph. This argument is only used for \code{topology="random"} or
+#'   \code{topology="cluster"} (see argument \code{prob} in
+#'   \code{\link[huge]{huge.generator}}).
+#' @param ... additional arguments to be passed to
+#'   \code{\link[huge]{huge.generator}}.
 #'
-#' @return A list with: \item{omega}{true simulated precision matrix.}
-#'   \item{u}{value of the constant u used to ensure that \code{omega} is
-#'   positive definite.}
-#'
-#' @examples
-#' # Simulation of an adjacency matrix
-#' theta <- SimulateAdjacency(pk = c(5, 5), nu_within = 0.7)
-#' print(theta)
-#'
-#' # Simulation of a precision matrix maximising the contrast
-#' simul <- SimulatePrecision(theta = theta)
-#' print(simul$omega)
-#'
-#' # Simulation of a precision matrix with specific ev by PC1
-#' simul <- SimulatePrecision(
-#'   theta = theta,
-#'   pd_strategy = "min_eigenvalue",
-#'   ev_xx = 0.3, scale = TRUE
-#' )
-#' print(simul$omega)
-#' @export
-SimulatePrecision <- function(pk = NULL, theta,
-                              v_within = c(0.5, 1), v_between = c(0, 0.1),
-                              v_sign = c(-1, 1), continuous = TRUE,
-                              pd_strategy = "diagonally_dominant", ev_xx = NULL, scale = TRUE,
-                              u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25) {
-  # Checking inputs and defining pk
-  if (is.null(pk)) {
-    pk <- ncol(theta)
-  } else {
-    if (sum(pk) != ncol(theta)) {
-      stop("Arguments 'pk' and 'theta' are not consistent. The sum of 'pk' entries must be equal to the number of rows and columns in 'theta'.")
-    }
-  }
-
-  # Checking the choice of pd_strategy
-  if (!pd_strategy %in% c("diagonally_dominant", "min_eigenvalue")) {
-    stop("Invalid input for argument 'pd_strategy'. Possible values are: 'diagonally_dominant' or 'min_eigenvalue'.")
-  }
-
-  # Checking other input values
-  if (any((v_within < 0) | (v_within > 1))) {
-    stop("Invalid input for argument 'v_within'. Values must be between 0 and 1.")
-  }
-  if (any((v_between < 0) | (v_between > 1))) {
-    stop("Invalid input for argument 'v_between'. Values must be between 0 and 1.")
-  }
-  if (any(!v_sign %in% c(-1, 1))) {
-    stop("Invalid input for argument 'v_sign'. Possible values are -1 and 1.")
-  }
-
-  # Ensuring that v values are lower than or equal to 1
-  if (any(abs(v_within) > 1)) {
-    v_within <- v_within / max(abs(v_within))
-    message("The values provided in 'v_within' have been re-scaled to be lower than or equal to 1 in absolute value.")
-  }
-
-  # Ensuring that diagonal entries of theta are zero
-  diag(theta) <- 0
-
-  # Building v matrix
-  v <- SimulateSymmetricMatrix(
-    pk = pk, v_within = v_within, v_between = v_between,
-    v_sign = v_sign, continuous = continuous
-  )
-
-  # Filling off-diagonal entries of the precision matrix
-  omega_tilde <- theta * v
-
-  # Ensuring positive definiteness
-  omega_pd <- MakePositiveDefinite(
-    omega = omega_tilde, pd_strategy = pd_strategy,
-    ev_xx = ev_xx, scale = scale, u_list = u_list, tol = tol
-  )
-
-  # Returning the output
-  return(omega_pd)
-}
-
-
-#' Simulation of binary contribution status
-#'
-#' Simulates the binary contribution status of potential predictor variables
-#' from different blocks to outcome variables. For each outcome, the set of true
-#' predictors is sampled from one block of potential predictors. If the blocks
-#' of variables are independent, the outcomes will be independent too.
-#'
-#' @inheritParams SimulateSymmetricMatrix
-#' @param q number of outcome variables. By default, one block of predictor is
-#'   linked to one outcome, i.e. \code{q=sum(pk)}.
-#' @param nu vector of probabilities. Each entry corresponds to one block of
-#'   predictors and defines the probability for each predictor within the block
-#'   to be chosen as true predictor of the corresponding outcome variable.
-#' @param orthogonal logical indicating if the outcomes have to be defined from
-#'   independent blocks of predictors as encoded in \code{pk}.
-#'
-#' @return A binary matrix encoding the contribution status of each predictor
-#'   variable (columns) to each outcome variable (rows).
+#' @return A symmetric adjacency matrix encoding an unweighted, undirected graph
+#'   with no self-loops.
 #'
 #' @keywords internal
-SamplePredictors <- function(pk, q = NULL, nu = 0.1, orthogonal = TRUE) {
-  # Definition of the number of outcome variables
-  if (is.null(q)) {
-    q <- length(pk)
-  }
-  if (length(nu) != q) {
-    nu <- rep(nu[1], q)
-  }
+HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
+  # Storing extra arguments
+  extra_args <- list(...)
 
-  # Simulation of the binary status for true predictors
-  theta <- matrix(0, nrow = q, ncol = sum(pk))
-  for (k in 1:q) {
-    if (orthogonal) {
-      if (k > 1) {
-        ids <- seq(cumsum(pk)[k - 1] + 1, cumsum(pk)[k])
-      } else {
-        ids <- seq(1, cumsum(pk)[k])
-      }
-      theta[k, ids] <- stats::rbinom(pk[k], size = 1, prob = nu[k])
+  # Extracting relevant extra arguments
+  tmp_extra_args <- MatchingArguments(extra_args = extra_args, FUN = huge::huge.generator)
+  tmp_extra_args <- tmp_extra_args[!names(tmp_extra_args) %in% c("n", "d", "prob", "graph", "verbose")]
 
-      # Introducing at least one true predictor
-      if (sum(theta[k, ids]) == 0) {
-        theta[k, sample(ids, size = 1)] <- 1
-      }
-    } else {
-      theta[k, ] <- stats::rbinom(sum(pk), size = 1, prob = nu[k])
-      theta[k, k] <- 1
-    }
-  }
+  # Running simulation model
+  mymodel <- do.call(huge::huge.generator, args = c(
+    list(
+      n = 2, d = sum(pk), prob = nu,
+      graph = topology, verbose = FALSE
+    ),
+    tmp_extra_args
+  ))
+  theta <- as.matrix(mymodel$theta)
 
-  return(t(theta))
-}
+  # Re-organising the variables to avoid having centrality related to variable ID (e.g. for scale-free models)
+  ids <- sample(ncol(theta))
+  theta <- theta[ids, ids]
 
-
-#' Making positive definite
-#'
-#' Determines the diagonal entries of a symmetric matrix to ensure it is
-#' positive definite. For this, diagonal entries of the matrix are defined to be
-#' higher than (i) the sum of entries on the corresponding row, which ensure it
-#' is diagonally dominant, or (ii) the absolute value of the smallest eigenvalue
-#' of the same matrix with a diagonal of zeros. The magnitude of (standardised)
-#' values in the inverse matrix is tuned by adding a constant u to the diagonal
-#' entries. Considering the matrix to make positive definite is a precision
-#' matrix, the constant u is chosen to (i) maximise the \code{\link{Contrast}}
-#' of the corresponding correlation matrix, or (ii) tune the proportion of
-#' explained variance by the first Principal Component \code{ev_xx} (i.e.
-#' largest eigenvalue of the covariance/correlation matrix divided by the sum of
-#' eigenvalues).
-#'
-#' @inheritParams SimulateGraphical
-#' @param omega input matrix.
-#' @param scale logical indicating if the proportion of explained variance by
-#'   PC1 should be computed from the correlation (\code{scale=TRUE}) or
-#'   covariance (\code{scale=FALSE}) matrix.
-#'
-#' @return A list with: \item{omega}{positive definite matrix.} \item{u}{value
-#'   of the constant u.}
-#'
-#' @examples
-#' # Simulation of a symmetric matrix
-#' p <- 5
-#' set.seed(1)
-#' omega <- matrix(rnorm(p * p), ncol = p)
-#' omega <- omega + t(omega)
-#' diag(omega) <- 0
-#'
-#' # Diagonal dominance maximising contrast
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "diagonally_dominant"
-#' )
-#' eigen(omega_pd$omega)$values # positive eigenvalues
-#'
-#' # Diagonal dominance with specific proportion of explained variance by PC1
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "diagonally_dominant",
-#'   ev_xx = 0.55
-#' )
-#' lambda_inv <- eigen(cov2cor(solve(omega_pd$omega)))$values
-#' max(lambda_inv) / sum(lambda_inv) # expected ev
-#'
-#' # Version not scaled (using eigenvalues from the covariance)
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "diagonally_dominant",
-#'   ev_xx = 0.55, scale = FALSE
-#' )
-#' lambda_inv <- 1 / eigen(omega_pd$omega)$values
-#' max(lambda_inv) / sum(lambda_inv) # expected ev
-#'
-#' # Non-negative eigenvalues maximising contrast
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "min_eigenvalue"
-#' )
-#' eigen(omega_pd$omega)$values # positive eigenvalues
-#'
-#' # Non-negative eigenvalues with specific proportion of explained variance by PC1
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "min_eigenvalue",
-#'   ev_xx = 0.7
-#' )
-#' lambda_inv <- eigen(cov2cor(solve(omega_pd$omega)))$values
-#' max(lambda_inv) / sum(lambda_inv)
-#'
-#' # Version not scaled (using eigenvalues from the covariance)
-#' omega_pd <- MakePositiveDefinite(omega,
-#'   pd_strategy = "min_eigenvalue",
-#'   ev_xx = 0.7, scale = FALSE
-#' )
-#' lambda_inv <- 1 / eigen(omega_pd$omega)$values
-#' max(lambda_inv) / sum(lambda_inv)
-#' @export
-MakePositiveDefinite <- function(omega, pd_strategy = "diagonally_dominant",
-                                 ev_xx = NULL, scale = TRUE, u_list = c(1e-10, 1),
-                                 tol = .Machine$double.eps^0.25) {
-
-  # Making positive definite using diagonally dominance
-  if (pd_strategy == "diagonally_dominant") {
-    # Constructing the diagonal as the sum of entries
-    diag(omega) <- apply(abs(omega), 1, sum)
-    lambda <- eigen(omega, only.values = TRUE)$values
-  }
-  # Making positive definite using eigendecomposition
-  if (pd_strategy == "min_eigenvalue") {
-    # Extracting smallest eigenvalue of omega_tilde
-    lambda <- eigen(omega, only.values = TRUE)$values
-    lambda0 <- abs(min(lambda))
-
-    # Making the precision matrix positive semidefinite
-    lambda <- lambda + lambda0
-    diag(omega) <- lambda0
-  }
-
-  if (is.null(ev_xx)) {
-    # Finding u that maximises the contrast
-    if (min(u_list) != max(u_list)) {
-      argmax_u <- stats::optimise(MaxContrast,
-        omega = omega, maximum = TRUE, tol = tol,
-        lower = min(u_list), upper = max(u_list)
-      )
-      u <- argmax_u$maximum
-    } else {
-      u <- min(u_list)
-    }
-  } else {
-    # Finding extreme values
-    if (scale) {
-      max_ev <- TuneExplainedVarianceCor(u = min(u_list), omega = omega)
-      min_ev <- TuneExplainedVarianceCor(u = max(u_list), omega = omega)
-    } else {
-      max_ev <- TuneExplainedVarianceCov(u = min(u_list), lambda = lambda)
-      min_ev <- TuneExplainedVarianceCov(u = max(u_list), lambda = lambda)
-    }
-
-    # Finding u corresponding to the required proportion of explained variance
-    if ((ev_xx <= min_ev) | (ev_xx >= max_ev)) {
-      if (ev_xx <= min_ev) {
-        u <- max(u_list)
-        if (ev_xx < min_ev) {
-          message(paste0("The smallest proportion of explained variance by PC1 that can be obtained is ", round(min_ev, digits = 2), "."))
-        }
-      } else {
-        u <- min(u_list)
-        if (ev_xx > max_ev) {
-          message(paste0("The largest proportion of explained variance by PC1 that can be obtained is ", round(max_ev, digits = 2), "."))
-        }
-      }
-    } else {
-      if (scale) {
-        # Minimising the difference between requested and possible ev
-        if (min(u_list) != max(u_list)) {
-          argmin_u <- stats::optimise(TuneExplainedVarianceCor,
-            omega = omega, ev_xx = ev_xx,
-            lower = min(u_list), upper = max(u_list), tol = tol
-          )
-          u <- argmin_u$minimum
-        } else {
-          u <- min(u_list)
-        }
-      } else {
-        # Minimising the difference between requested and possible ev
-        if (min(u_list) != max(u_list)) {
-          argmin_u <- stats::optimise(TuneExplainedVarianceCov,
-            lambda = lambda, ev_xx = ev_xx,
-            lower = min(u_list), upper = max(u_list), tol = tol
-          )
-          u <- argmin_u$minimum
-        } else {
-          u <- min(u_list)
-        }
-      }
-    }
-  }
-
-  # Constructing the diagonal
-  diag(omega) <- diag(omega) + u
-
-  return(list(omega = omega, u = u))
-}
-
-
-#' Maximising matrix contrast
-#'
-#' Computes the contrast of the correlation matrix obtained by adding u to the
-#' diagonal of the precision matrix. This function is used to find the value of
-#' u that maximises the contrast when constructing a diagonally dominant
-#' precision matrix.
-#'
-#' @param u constant u added to the diagonal of the precision matrix.
-#' @param omega positive semi-definite precision matrix.
-#' @param digits number of digits to use in the definition of the contrast.
-#'
-#' @return A single number, the contrast of the generated precision matrix.
-#'
-#' @keywords internal
-MaxContrast <- function(u, omega, digits = 3) {
-  diag(omega) <- diag(omega) + u
-  return(Contrast(stats::cov2cor(solve(omega)), digits = digits))
-}
-
-
-#' Matrix contrast
-#'
-#' Computes the matrix contrast, defined as the number of unique truncated
-#' entries with a specified number of digits.
-#'
-#' @param mat input matrix.
-#' @param digits number of digits to use.
-#'
-#' @return A single number, the contrast of the input matrix.
-#'
-#' @export
-Contrast <- function(mat, digits = 3) {
-  return(length(unique(round(as.vector(abs(mat)), digits = digits))))
-}
-
-
-#' Tuning function (covariance)
-#'
-#' Computes the difference in absolute value between the desired and observed
-#' proportion of explained variance from the first Principal Component of a
-#' Principal Component Analysis applied on the covariance matrix. The precision
-#' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a covariance matrix with desired proportion of explained
-#' variance.
-#'
-#' @inheritParams MaxContrast
-#' @param ev_xx desired proportion of explained variance. If \code{ev_xx=NULL}, the
-#'   obtained proportion of explained variance is returned.
-#' @param lambda eigenvalues of the positive semidefinite precision matrix.
-#'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
-#'
-#' @keywords internal
-TuneExplainedVarianceCov <- function(u, ev_xx = NULL, lambda) {
-  lambda <- lambda + u
-  lambda_inv <- 1 / lambda
-  tmp_ev <- max(lambda_inv) / sum(lambda_inv)
-  if (is.null(ev_xx)) {
-    out <- tmp_ev
-  } else {
-    out <- abs(tmp_ev - ev_xx)
-  }
-  return(out)
-}
-
-
-#' Tuning function (correlation)
-#'
-#' Computes the difference in absolute value between the desired and observed
-#' proportion of explained variance from the first Principal Component of a
-#' Principal Component Analysis applied on the correlation matrix. The precision
-#' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a correlation matrix with desired proportion of explained
-#' variance.
-#'
-#' @inheritParams TuneExplainedVarianceCov
-#' @param omega positive semidefinite precision matrix.
-#'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
-#'
-#' @keywords internal
-TuneExplainedVarianceCor <- function(u, ev_xx = NULL, omega) {
-  diag(omega) <- diag(omega) + u
-  mycor <- stats::cov2cor(solve(omega))
-  tmp_ev <- norm(mycor, type = "2") / ncol(mycor)
-  if (is.null(ev_xx)) {
-    out <- tmp_ev
-  } else {
-    out <- abs(tmp_ev - ev_xx)
-  }
-  return(out)
-}
-
-
-#' Tuning function (regression)
-#'
-#' Computes the absolute difference between the smallest eigenvalue and
-#' requested one (parameter \code{tol}) for a precision matrix with predictors
-#' and outcomes.
-#'
-#' @param ev_xz proportion of explained variance.
-#' @param omega precision matrix.
-#' @param tol requested smallest eigenvalue after transformation of the input
-#'   precision matrix.
-#' @param q number of outcome variables.
-#' @param p number of predictor variables.
-#'
-#' @return The absolute difference between the smallest eigenvalue of the
-#'   transformed precision matrix and requested value \code{tol}.
-#'
-#' @keywords internal
-TuneExplainedVarianceReg <- function(ev_xz, omega, tol = 0.1, q, p) {
-  ev_xz <- rep(ev_xz, q)
-  for (j in 1:q) {
-    pred_ids <- seq(q + 1, q + p)
-    omega[j, j] <- omega[j, pred_ids, drop = FALSE] %*% solve(omega[pred_ids, pred_ids]) %*% t(omega[j, pred_ids, drop = FALSE]) * 1 / ev_xz[j]
-  }
-  return(abs(min(eigen(omega, only.values = TRUE)$values) - tol))
+  return(theta)
 }

@@ -1,17 +1,21 @@
 #' Block matrix
 #'
-#' Generates a symmetric matrix of the size of the adjacency matrix encoding the
-#' block structure from the numbers of variables in each group.
+#' Generates a symmetric block matrix of size (\code{sum(pk)} x \code{sum(pk)}).
+#' The sizes of the submatrices is defined based on \code{pk}. For each
+#' submatrix, all entries are equal to the submatrix (block) index.
 #'
 #' @param pk vector encoding the grouping structure.
 #'
 #' @return A symmetric block matrix.
 #'
-#' @family multi-block functions
+#' @family block matrix functions
 #'
 #' @examples
-#' # Small example
-#' mat <- BlockMatrix(pk = c(2, 3))
+#' # Example 1
+#' BlockMatrix(pk = c(2, 3))
+#'
+#' # Example 2
+#' BlockMatrix(pk = c(2, 3, 2))
 #' @export
 BlockMatrix <- function(pk) {
   nblocks <- sum(upper.tri(matrix(NA, ncol = length(pk), nrow = length(pk)), diag = TRUE))
@@ -56,9 +60,14 @@ BlockMatrix <- function(pk) {
 #'
 #' @return A binary block diagonal matrix.
 #'
+#' @family block matrix functions
+#'
 #' @examples
-#' # Small example
-#' mat <- BlockDiagonal(pk = c(2, 3))
+#' # Example 1
+#' BlockDiagonal(pk = c(2, 3))
+#'
+#' # Example 2
+#' BlockDiagonal(pk = c(2, 3, 2))
 #' @export
 BlockDiagonal <- function(pk) {
   bigblocks <- BlockMatrix(pk)
@@ -70,21 +79,24 @@ BlockDiagonal <- function(pk) {
 
 #' Block structure
 #'
-#' Generates a symmetric matrix encoding the block structure from the numbers of
-#' variables in each group. This function can be used to visualise block IDs.
+#' Generates a symmetric matrix of size (\code{length(pk)} x \code{length(pk)})
+#' where entries correspond to block indices. This function can be used to
+#' visualise block indices of a matrix generated with \code{\link{BlockMatrix}}.
 #'
 #' @inheritParams BlockMatrix
 #'
 #' @return A symmetric matrix of size \code{length(pk))}.
 #'
-#' @family multi-block functions
+#' @family block matrix functions
 #'
 #' @examples
-#' # Example with 2 groups
-#' mat <- BlockStructure(pk = rep(10, 2))
+#' # Example 1
+#' BlockMatrix(pk = c(2, 3))
+#' BlockStructure(pk = c(2, 3))
 #'
-#' # Example with 5 groups
-#' mat <- BlockStructure(pk = rep(10, 5))
+#' # Example 2
+#' BlockMatrix(pk = c(2, 3, 2))
+#' BlockStructure(pk = c(2, 3, 2))
 #' @export
 BlockStructure <- function(pk) {
   blocks <- BlockMatrix(pk = rep(1, length(pk)))

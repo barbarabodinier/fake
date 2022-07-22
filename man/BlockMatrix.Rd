@@ -13,15 +13,20 @@ BlockMatrix(pk)
 A symmetric block matrix.
 }
 \description{
-Generates a symmetric matrix of the size of the adjacency matrix encoding the
-block structure from the numbers of variables in each group.
+Generates a symmetric block matrix of size (\code{sum(pk)} x \code{sum(pk)}).
+The sizes of the submatrices is defined based on \code{pk}. For each
+submatrix, all entries are equal to the submatrix (block) index.
 }
 \examples{
-# Small example
-mat <- BlockMatrix(pk = c(2, 3))
+# Example 1
+BlockMatrix(pk = c(2, 3))
+
+# Example 2
+BlockMatrix(pk = c(2, 3, 2))
 }
 \seealso{
-Other multi-block functions: 
+Other block matrix functions: 
+\code{\link{BlockDiagonal}()},
 \code{\link{BlockStructure}()}
 }
-\concept{multi-block functions}
+\concept{block matrix functions}
