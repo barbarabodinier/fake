@@ -3,6 +3,11 @@
 
 # fake: Flexible Data Simulation Using The Multivariate Normal Distribution
 
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 ## Description
 
 > Simulation of data from Gaussian Graphical Models (B Bodinier, S
