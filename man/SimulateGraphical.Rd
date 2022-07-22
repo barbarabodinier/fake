@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateGraphical}
 \alias{SimulateGraphical}
-\title{Data simulation from a Gaussian Graphical Model}
+\title{Data simulation for Gaussian Graphical Modelling}
 \usage{
 SimulateGraphical(
   n = 100,

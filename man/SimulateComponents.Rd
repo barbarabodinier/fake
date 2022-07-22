@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateComponents}
 \alias{SimulateComponents}
-\title{Data simulation from sparse Principal Component Analysis}
+\title{Data simulation for sparse Principal Component Analysis}
 \usage{
 SimulateComponents(
   n = 100,

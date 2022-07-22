@@ -1,4 +1,4 @@
-#' Data simulation from a Gaussian Graphical Model
+#' Data simulation for Gaussian Graphical Modelling
 #'
 #' Simulates data from a Gaussian Graphical Model (GGM).
 #'
@@ -269,7 +269,7 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
 }
 
 
-#' Data simulation from sparse Principal Component Analysis
+#' Data simulation for sparse Principal Component Analysis
 #'
 #' Simulates data with with independent groups of variables.
 #'
@@ -399,7 +399,7 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 }
 
 
-#' Data simulation from multivariate regression
+#' Data simulation for multivariate regression
 #'
 #' Simulates data with outcome(s) and predictors, where only a subset of the
 #' predictors actually contributes to the definition of the outcome(s).

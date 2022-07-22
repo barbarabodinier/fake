@@ -2,7 +2,7 @@
 % Please edit documentation in R/simulations.R
 \name{SimulateRegression}
 \alias{SimulateRegression}
-\title{Data simulation from multivariate regression}
+\title{Data simulation for multivariate regression}
 \usage{
 SimulateRegression(
   n = 100,
