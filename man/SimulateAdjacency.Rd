@@ -62,7 +62,7 @@ used.
 }
 \details{
 Random graphs are simulated using the Erdos-Renyi algorithm.
-  Scale-free graphs are simulated using a preferential attachement algorithm.
+  Scale-free graphs are simulated using a preferential attachment algorithm.
   More details are provided in \code{\link[huge]{huge.generator}}.
 }
 \examples{

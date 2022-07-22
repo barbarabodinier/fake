@@ -1,5 +1,5 @@
 Package: fake
-Title: Flexible Data Simulation Using The Multivariate Normal Distribution
+Title: Flexible Data Simulation Using the Multivariate Normal Distribution
 Version: 1.0.0
 Author: Barbara Bodinier [aut, cre]
 Maintainer: Barbara Bodinier <b.bodinier@imperial.ac.uk>
