@@ -133,8 +133,7 @@ plot.adjacency_matrix <- function(x, ...) {
 plot.simulation_clustering <- function(x, ...) {
   # Visualisation of Euclidian distances along the contributing variable
   Heatmap(
-    mat = as.matrix(stats::dist(x$data[, which(x$theta_xc == 1), drop = FALSE])),
-    col = c("navy", "white", "red")
+    mat = as.matrix(stats::dist(x$data[, which(apply(x$theta_xc, 2, sum) != 0), drop = FALSE]))
   )
   graphics::title("Distances across variables contributing to clustering")
 }

@@ -245,6 +245,7 @@ Heatmap(mycor,
 
 Other simulation functions: 
 \code{\link{SimulateAdjacency}()},
+\code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateRegression}()}
 }

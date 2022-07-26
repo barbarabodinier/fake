@@ -104,6 +104,7 @@ plot(simul) # variable 2 is the central node
 }
 \seealso{
 Other simulation functions: 
+\code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()},
 \code{\link{SimulateRegression}()}

@@ -119,11 +119,11 @@ the absolute value of the smallest eigenvalue of the precision matrix with
 zeros on the diagonal and a constant u.}
 
 \item{ev_xx}{expected proportion of explained variance by the first Principal
-Component (PC1) of a Principal Component Analysis. This is the largest
-eigenvalue of the correlation (if \code{scale_ev=TRUE}) or covariance (if
-\code{scale_ev=FALSE}) matrix divided by the sum of eigenvalues. If
-\code{ev_xx=NULL} (the default), the constant u is chosen by maximising the
-contrast of the correlation matrix.}
+Component (PC1) of a Principal Component Analysis applied on the
+predictors. This is the largest eigenvalue of the correlation (if
+\code{scale_ev=TRUE}) or covariance (if \code{scale_ev=FALSE}) matrix
+divided by the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the
+constant u is chosen by maximising the contrast of the correlation matrix.}
 
 \item{scale_ev}{logical indicating if the proportion of explained variance by
 PC1 should be computed from the correlation (\code{scale_ev=TRUE}) or
@@ -263,6 +263,7 @@ par(oldpar)
 \seealso{
 Other simulation functions: 
 \code{\link{SimulateAdjacency}()},
+\code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()}
 }
