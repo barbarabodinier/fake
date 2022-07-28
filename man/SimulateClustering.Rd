@@ -36,8 +36,8 @@ total number of items is \code{sum(n)}.}
 \item{adjacency}{optional binary and symmetric adjacency matrix encoding the
 conditional independence structure between attributes.}
 
-\item{theta_xc}{optional binary vector encoding which attributes (columns)
-contribute to the clustering structure between items (rows). If
+\item{theta_xc}{optional binary matrix encoding which attributes (columns)
+contribute to the clustering structure between which clusters (rows). If
 \code{theta_xc=NULL}, variables contributing to the clustering are sampled
 with probability \code{nu_xc}.}
 
@@ -128,11 +128,18 @@ correlation matrices should be included in the output.}
 \value{
 A list with: \item{data}{simulated data with \code{sum(n)}
   observation and \code{sum(pk)} variables} \item{theta}{simulated (true)
-  cluster membership.} \item{adjacency}{adjacency matrix of the graph encoding
-  the conditional independence structure between variables.}
+  cluster membership.} \item{adjacency}{adjacency matrix of the graph
+  encoding the conditional independence structure between variables.}
   \item{theta_xc}{binary vector encoding variables contributing to the
   clustering structure.} \item{ev}{vector of marginal expected proportions of
-  explained variance for each variable.}
+  explained variance for each variable.} \item{omega}{simulated (true)
+  precision matrix. Only returned if \code{output_matrices=TRUE}.}
+  \item{phi}{simulated (true) partial correlation matrix. Only returned if
+  \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
+  matrix. Only returned if \code{output_matrices=TRUE}.} \item{u}{value of
+  the constant u used for the simulation of \code{omega}. Only returned if
+  \code{output_matrices=TRUE}.} \item{mu_mixture}{simulated (true)
+  cluster-specific means. Only returned if \code{output_matrices=TRUE}.}
 }
 \description{
 Simulates mixture multivariate Normal data with clusters of items (rows)

@@ -92,7 +92,7 @@
 #'   graph} \item{omega}{simulated (true) precision matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
 #'   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
-#'   \item{sigma}{ simulated (true) covariance matrix. Only returned if
+#'   \item{sigma}{simulated (true) covariance matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{u}{value of the constant u used for the
 #'   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
 #'
@@ -836,7 +836,14 @@ SimulateRegression <- function(n = 100, pk = 10, N = 3,
 #'   encoding the conditional independence structure between variables.}
 #'   \item{theta_xc}{binary vector encoding variables contributing to the
 #'   clustering structure.} \item{ev}{vector of marginal expected proportions of
-#'   explained variance for each variable.}
+#'   explained variance for each variable.} \item{omega}{simulated (true)
+#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
+#'   matrix. Only returned if \code{output_matrices=TRUE}.} \item{u}{value of
+#'   the constant u used for the simulation of \code{omega}. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{mu_mixture}{simulated (true)
+#'   cluster-specific means. Only returned if \code{output_matrices=TRUE}.}
 #'
 #' @examples
 #'
@@ -961,6 +968,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
     output_matrices = output_matrices,
     v_within = v_within,
     v_between = v_between,
+    v_sign = v_sign,
     continuous = continuous,
     pd_strategy = pd_strategy, ev_xx = ev_xx, scale = scale,
     u_list = u_list, tol = tol
@@ -1000,12 +1008,9 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
   names(theta) <- rownames(out$data)
   out$theta <- theta
 
-  # # Building binary cluster membership for each feature
-  # V <- stats::model.matrix(~ as.factor(theta) - 1)
-
   # Simulating the cluster-specific means
+  mu_mixture <- matrix(NA, nrow = length(unique(theta)), ncol = sum(pk))
   if (length(n) > 1) {
-    # if (is.null(mu_mat)) {
     mu_mat <- matrix(NA, nrow = sum(n), ncol = sum(pk))
     for (k in 1:ncol(mu_mat)) {
       # Defining variance to reach expected proportion of e.v.
@@ -1014,6 +1019,8 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       # Sampling initial values for cluster-specific means
       mu <- stats::rnorm(n = nc, mean = 0, sd = 1)
       mu <- mu * theta_xc[, k]
+
+      # Attributing cluster-specific means to observations
       for (i in 1:nrow(mu_mat)) {
         mu_mat[i, k] <- mu[theta[i]]
       }
@@ -1024,25 +1031,27 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-mean(mu_mat[,k]))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
       # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
       # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum(table(theta)*(mu-1/nrow(mu_mat)*sum(table(theta)*mu))^2))
+
+      # Storing cluster-specific means
+      mu_mixture[, k] <- mu_mat[!duplicated(theta),k]
     }
-    # }
     mu_mat[is.na(mu_mat)] <- 0
 
     # Using cluster-specific mean for contributing variables
     for (k in 1:ncol(mu_mat)) {
-      # if (theta_xc[k] == 1) {
-      out$data[, k] <- scale(out$data[, k]) + mu_mat[, k]
-      # }
+      out$data[, k] <- out$data[, k] + mu_mat[, k]
     }
   }
-
-  # Scaling the output data
-  out$data <- scale(out$data)
 
   # Definition of contributing variables
   colnames(theta_xc) <- colnames(out$data)
   out$theta_xc <- theta_xc
   out$ev <- ev_xc * ifelse(apply(theta_xc, 2, sum) != 0, yes = 1, no = 0)
+
+  # Returning true cluster-specific means
+  if (output_matrices) {
+    out$mu_mixture <- mu_mixture
+  }
 
   # Defining the class
   class(out) <- "simulation_clustering"

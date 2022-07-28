@@ -131,7 +131,7 @@ A list with: \item{data}{simulated data with \code{n} observation and
   graph} \item{omega}{simulated (true) precision matrix. Only returned if
   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
-  \item{sigma}{ simulated (true) covariance matrix. Only returned if
+  \item{sigma}{simulated (true) covariance matrix. Only returned if
   \code{output_matrices=TRUE}.} \item{u}{value of the constant u used for the
   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
 }
