@@ -946,15 +946,26 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
         theta_xc <- rbind(theta_xc, tmp_theta_xc)
       }
     }
-    pk <- ncol(theta_xc)
+    if (is.null(pk)) {
+      pk <- ncol(theta_xc)
+    } else {
+      if (sum(pk) != ncol(theta_xc)) {
+        warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('theta_xc').")
+        pk <- ncol(theta_xc)
+      }
+    }
   }
   if (!is.null(adjacency)) {
     if (ncol(adjacency) != nrow(adjacency)) {
       stop("Invalid input for argument 'adjacency'. It must be a square matrix (same number of rows and columns).")
     }
-    if (sum(pk) != ncol(adjacency)) {
-      warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('adjacency').")
-      pk <- ncol(adjacency)
+    if (is.null(pk)) {
+      pk <- ncol(theta_xc)
+    } else {
+      if (sum(pk) != ncol(adjacency)) {
+        warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('adjacency').")
+        pk <- ncol(adjacency)
+      }
     }
   }
 
@@ -1033,7 +1044,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum(table(theta)*(mu-1/nrow(mu_mat)*sum(table(theta)*mu))^2))
 
       # Storing cluster-specific means
-      mu_mixture[, k] <- mu_mat[!duplicated(theta),k]
+      mu_mixture[, k] <- mu_mat[!duplicated(theta), k]
     }
     mu_mat[is.na(mu_mat)] <- 0
 
