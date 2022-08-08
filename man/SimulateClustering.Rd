@@ -21,9 +21,10 @@ SimulateClustering(
   continuous = TRUE,
   pd_strategy = "diagonally_dominant",
   ev_xx = NULL,
-  scale = TRUE,
+  scale_ev = TRUE,
   u_list = c(1e-10, 1),
   tol = .Machine$double.eps^0.25,
+  scale = TRUE,
   output_matrices = FALSE
 )
 }
@@ -113,14 +114,21 @@ predictors. This is the largest eigenvalue of the correlation (if
 the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the constant u
 is chosen by maximising the contrast of the correlation matrix.}
 
-\item{scale}{logical indicating if the simulated data should be standardised
-using \code{\link[base]{scale}}.}
+\item{scale_ev}{logical indicating if the proportion of explained variance by
+PC1 should be computed from the correlation (\code{scale_ev=TRUE}) or
+covariance (\code{scale_ev=FALSE}) matrix. If \code{scale_ev=TRUE}, the
+correlation matrix is used as parameter of the multivariate normal
+distribution.}
 
 \item{u_list}{vector with two numeric values defining the range of values to
 explore for constant u.}
 
 \item{tol}{accuracy for the search of parameter u as defined in
 \code{\link[stats]{optimise}}.}
+
+\item{scale}{logical indicating if the true mean is zero and true variance is
+one for all simulated variables. The observed mean and variance may be
+slightly off by chance.}
 
 \item{output_matrices}{logical indicating if the true precision and (partial)
 correlation matrices should be included in the output.}

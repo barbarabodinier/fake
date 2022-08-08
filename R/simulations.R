@@ -77,8 +77,9 @@
 #'   explore for constant u.
 #' @param tol accuracy for the search of parameter u as defined in
 #'   \code{\link[stats]{optimise}}.
-#' @param scale logical indicating if the simulated data should be standardised
-#'   using \code{\link[base]{scale}}.
+#' @param scale logical indicating if the true mean is zero and true variance is
+#'   one for all simulated variables. The observed mean and variance may be
+#'   slightly off by chance.
 #' @param ... additional arguments passed to the graph simulation function
 #'   provided in \code{implementation}.
 #'
@@ -931,8 +932,9 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
                                nu_within = 0, nu_between = NULL,
                                v_within = c(0.5, 1), v_between = c(0, 0.1),
                                v_sign = c(-1, 1), continuous = TRUE,
-                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale = TRUE,
+                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
                                u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25,
+                               scale = TRUE,
                                output_matrices = FALSE) {
   # Checking the inputs
   if (!is.null(theta_xc)) {
@@ -976,13 +978,17 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
     topology = topology,
     nu_within = nu_within,
     nu_between = nu_between,
-    output_matrices = output_matrices,
     v_within = v_within,
     v_between = v_between,
     v_sign = v_sign,
     continuous = continuous,
-    pd_strategy = pd_strategy, ev_xx = ev_xx, scale = scale,
-    u_list = u_list, tol = tol
+    pd_strategy = pd_strategy,
+    ev_xx = ev_xx,
+    scale_ev = scale_ev,
+    u_list = u_list,
+    tol = tol,
+    scale = scale,
+    output_matrices = TRUE
   )
 
   # Defining number of clusters
@@ -1024,9 +1030,6 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
   if (length(n) > 1) {
     mu_mat <- matrix(NA, nrow = sum(n), ncol = sum(pk))
     for (k in 1:ncol(mu_mat)) {
-      # Defining variance to reach expected proportion of e.v.
-      var_mu <- ev_xc[k] * 1 / (1 - ev_xc[k])
-
       # Sampling initial values for cluster-specific means
       mu <- stats::rnorm(n = nc, mean = 0, sd = 1)
       mu <- mu * theta_xc[, k]
@@ -1036,22 +1039,35 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
         mu_mat[i, k] <- mu[theta[i]]
       }
 
-      # Scaling to ensure mean of zero and defined variance
-      mu_mat[, k] <- scale(mu_mat[, k])
-      mu_mat[, k] <- mu_mat[, k] * sqrt(var_mu)
-      # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-mean(mu_mat[,k]))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
-      # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
-      # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum(table(theta)*(mu-1/nrow(mu_mat)*sum(table(theta)*mu))^2))
+      # # Defining variance to reach expected proportion of e.v.
+      # var_mu <- ev_xc[k] * 1 / (1 - ev_xc[k])
+      #
+      # # Scaling to ensure mean of zero and defined variance
+      # mu_mat[, k] <- scale(mu_mat[, k])
+      # mu_mat[, k] <- mu_mat[, k] * sqrt(var_mu)
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-mean(mu_mat[,k]))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum(table(theta)*(mu-1/nrow(mu_mat)*sum(table(theta)*mu))^2))
+      #
+      # # Storing cluster-specific means
+      # mu_mixture[, k] <- mu_mat[!duplicated(theta), k]
+      #
+      # # Adding cluster-specific means
+      # out$data[, k] <- out$data[, k] + mu_mat[, k]
+
+      # Ensuring that the grouping structure is going to represent desired proportion of variance
+      if (any(theta_xc[, k] != 0)) {
+        mu_mat[, k] <- scale(mu_mat[, k]) * sqrt(ev_xc[k]) * sqrt(diag(out$sigma)[k])
+        out$data[, k] <- out$data[, k] * sqrt(1 - ev_xc[k])
+      }
+
+      # Adding cluster-specific means
+      out$data[, k] <- out$data[, k] + mu_mat[, k]
 
       # Storing cluster-specific means
       mu_mixture[, k] <- mu_mat[!duplicated(theta), k]
     }
     mu_mat[is.na(mu_mat)] <- 0
-
-    # Using cluster-specific mean for contributing variables
-    for (k in 1:ncol(mu_mat)) {
-      out$data[, k] <- out$data[, k] + mu_mat[, k]
-    }
   }
 
   # Definition of contributing variables

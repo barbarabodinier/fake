@@ -116,8 +116,9 @@ explore for constant u.}
 \item{tol}{accuracy for the search of parameter u as defined in
 \code{\link[stats]{optimise}}.}
 
-\item{scale}{logical indicating if the simulated data should be standardised
-using \code{\link[base]{scale}}.}
+\item{scale}{logical indicating if the true mean is zero and true variance is
+one for all simulated variables. The observed mean and variance may be
+slightly off by chance.}
 
 \item{output_matrices}{logical indicating if the true precision and (partial)
 correlation matrices should be included in the output.}
