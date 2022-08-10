@@ -38,8 +38,8 @@ off-diagonal blocks are not allowed to ensure that the simulated orthogonal
 components are sparse. Corresponding entries in the precision matrix will
 be set to zero.}
 
-\item{nu_within}{expected density (number of edges over the number of node
-pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
+\item{nu_within}{probability of having an edge between two nodes belonging to
+the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
 this argument is only used for \code{topology="random"} or
 \code{topology="cluster"} (see argument \code{prob} in

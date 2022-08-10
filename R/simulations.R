@@ -22,20 +22,20 @@
 #'   \code{implementation=HugeAdjacency}, possible values are listed for the
 #'   argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
 #'   "random", "hub", "cluster", "band" and "scale-free".
-#' @param nu_within expected density (number of edges over the number of node
-#'   pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
+#' @param nu_within probability of having an edge between two nodes belonging to
+#'   the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 #'   the expected density of the graph. If \code{implementation=HugeAdjacency},
 #'   this argument is only used for \code{topology="random"} or
 #'   \code{topology="cluster"} (see argument \code{prob} in
 #'   \code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
 #'   provided.
-#' @param nu_between expected density (number of edges over the number of node
-#'   pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
-#'   By default, the same density is used for within and between blocks
-#'   (\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.
-#'   Only used if \code{nu_mat} is not provided.
+#' @param nu_between probability of having an edge between two nodes belonging
+#'   to different groups, as defined in \code{pk}. By default, the same density
+#'   is used for within and between blocks (\code{nu_within}=\code{nu_between}).
+#'   Only used if \code{length(pk)>1}. Only used if \code{nu_mat} is not
+#'   provided.
 #' @param nu_mat matrix of probabilities of having an edge between nodes
-#'   belonging to a given pair of communities.
+#'   belonging to a given pair of node groups defined in \code{pk}.
 #' @param output_matrices logical indicating if the true precision and (partial)
 #'   correlation matrices should be included in the output.
 #' @param v_within vector defining the (range of) nonzero entries in the
@@ -1174,9 +1174,6 @@ SimulateAdjacency <- function(pk = 10,
 
   # Creating the matrix of probabilities
   if (is.null(nu_mat)) {
-    if (is.null(nu_within) | is.null(nu_between)) {
-      stop("Arguments 'nu_within', 'nu_between' and 'nu_mat' are missing: 'nu_mat' or both 'nu_within' and 'nu_between' must be provided.")
-    }
     nu_mat <- diag(length(pk)) * nu_within
     nu_mat[upper.tri(nu_mat)] <- nu_between
     nu_mat[lower.tri(nu_mat)] <- nu_between

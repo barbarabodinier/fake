@@ -235,3 +235,194 @@ MakePositiveDefinite <- function(omega, pd_strategy = "diagonally_dominant",
 Contrast <- function(mat, digits = 3) {
   return(length(unique(round(as.vector(abs(mat)), digits = digits))))
 }
+
+
+#' Within-group probabilities for communities
+#'
+#' Computes the smallest within-group probabilities that can be used to simulate
+#' a graph where communities can be expected for given probabilities of
+#' between-group probabilities and group sizes.
+#'
+#' @inheritParams SimulateGraphical
+#' @param nu_mat matrix of probabilities of having an edge between nodes
+#'   belonging to a given pair of node groups defined in \code{pk}. Only
+#'   off-diagonal entries are used.
+#'
+#' @details The vector of within-group probabilities is the smallest one that
+#'   can be used to generate an expected total within degree \eqn{D^w_k}
+#'   strictly higher than the expected total between degree \eqn{D^b_k} for all
+#'   communities \eqn{k} (see \code{\link{ExpectedCommunities}}). Namely, using
+#'   the suggested within-group probabilities would give expected \eqn{D^w_k =
+#'   D^b_k + 1}.
+#'
+#' @return A vector of within-group probabilities.
+#'
+#' @seealso \code{\link{ExpectedCommunities}}, \code{\link{SimulateAdjacency}},
+#'   \code{\link{SimulateGraphical}}
+#'
+#' @examples
+#' # Simulation parameters
+#' pk <- rep(20, 4)
+#' nu_between <- 0.1
+#'
+#' # Estimating smallest nu_within
+#' nu_within <- MinWithinProba(pk = pk, nu_between = nu_between)
+#'
+#' # Expected metrics
+#' ExpectedCommunities(
+#'   pk = pk,
+#'   nu_within = max(nu_within),
+#'   nu_between = nu_between
+#' )
+#'
+#' @export
+MinWithinProba <- function(pk, nu_between = 0, nu_mat = NULL) {
+  if (is.null(nu_mat)) {
+    nu_mat <- diag(length(pk))
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
+    diag(nu_mat) <- NA
+  } else {
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
+  }
+
+  nu_within_min <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    nu_within_min[k] <- 1 / (pk[k] - 1) * (sum(nu_mat[k, -k] * pk[-k]) + 1 / pk[k])
+  }
+
+  return(nu_within_min)
+}
+
+
+#' Expected community structure
+#'
+#' Computes expected metrics related to the community structure of a graph
+#' simulated with given parameters.
+#'
+#' @inheritParams SimulateGraphical
+#'
+#' @details Given a group of nodes, the within degree \eqn{d^w_i} of node
+#'   \eqn{i} is defined as the number of nodes from the same group node \eqn{i}
+#'   is connected to. The between degree \eqn{d^b_i} is the number of nodes from
+#'   other groups node \eqn{i} is connected to. A weak community in the network
+#'   is defined as a group of nodes for which the total within degree (sum of
+#'   the \eqn{d^w_i} for all nodes in the community) is stricly greater than the
+#'   total between degree (sum of \eqn{d^b_i} for all nodes in the community).
+#'   For more details, see
+#'   \href{http://networksciencebook.com/chapter/9#basics}{Network Science} by
+#'   Albert-Laszlo Barabasi.
+#'
+#'   The expected total within and between degrees for the groups defined in
+#'   \code{pk} in a network simulated using \code{SimulateAdjacency} can be
+#'   computed given the group sizes (stored in \code{pk}) and probabilities of
+#'   having an edge between nodes from a given group pair (defined by
+#'   \code{nu_within} and \code{nu_between} or by \code{nu_mat}). The expected
+#'   presence of weak communities can be inferred from these quantities.
+#'
+#'   The expected modularity, measuring the difference between observed and
+#'   expected number of within-community edges, is also returned. For more
+#'   details on this metric, see \code{\link[igraph]{modularity}}.
+#'
+#' @return A list with: \item{total_within_degree_c}{total within degree by node
+#'   group, i.e. sum of expected within degree over all nodes in a given group.}
+#'   \item{total_between_degree}{total between degree by node group, i.e. sum of
+#'   expected between degree over all nodes in a given group.}
+#'   \item{weak_community}{binary indicator for a given node group to be an
+#'   expected weak community.} \item{total_number_edges_c}{matrix of expected
+#'   number of edges between nodes from a given node pair.}
+#'   \item{modularity}{expected modularity (see
+#'   \code{\link[igraph]{modularity}}).}
+#'
+#' @seealso \code{\link{SimulateGraphical}}, \code{\link{SimulateAdjacency}},
+#'   \code{\link{MinWithinProba}}
+#'
+#' @examples
+#' # Simulation parameters
+#' pk <- rep(20, 4)
+#' nu_within <- 0.8
+#' nu_between <- 0.1
+#'
+#' # Expected metrics
+#' expected <- ExpectedCommunities(
+#'   pk = pk,
+#'   nu_within = nu_within,
+#'   nu_between = nu_between
+#' )
+#'
+#' # Example of simulated graph
+#' set.seed(1)
+#' theta <- SimulateAdjacency(
+#'   pk = pk,
+#'   nu_within = nu_within,
+#'   nu_between = nu_between
+#' )
+#'
+#' # Comparing observed and expected numbers of edges
+#' bigblocks <- BlockMatrix(pk)
+#' BlockStructure(pk)
+#' sum(theta[which(bigblocks == 2)]) / 2
+#' expected$total_number_edges_c[1, 2]
+#'
+#' # Comparing observed and expected modularity
+#' igraph::modularity(igraph::graph_from_adjacency_matrix(theta, mode = "undirected"),
+#'   membership = rep.int(1:length(pk), times = pk)
+#' )
+#' expected$modularity
+#'
+#' @export
+ExpectedCommunities <- function(pk, nu_within = 0.1, nu_between = 0, nu_mat = NULL) {
+  if (is.null(nu_mat)) {
+    nu_mat <- diag(length(pk))
+    nu_mat <- nu_mat * nu_within
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
+  } else {
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
+  }
+
+  # Calculating expected sums of within and between degrees for community k
+  d_within <- d_between <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    d_within[k] <- pk[k] * nu_mat[k, k] * (pk[k] - 1) # sum of within degrees in community k
+    d_between[k] <- pk[k] * sum(nu_mat[k, -k] * pk[-k]) # sum of between degrees in community k
+  }
+  weak_community <- ifelse(d_within > d_between, yes = 1, no = 0)
+
+  # Calculating expected number of edges within and between communities
+  mystructure <- BlockStructure(pk)
+  emat <- matrix(NA, nrow = nrow(mystructure), ncol = ncol(mystructure))
+  for (k in unique(mystructure[upper.tri(mystructure, diag = TRUE)])) {
+    if (k %in% diag(mystructure)) {
+      i <- which(diag(mystructure) == k)
+      emat[which(mystructure == k)] <- nu_mat[i, i] * pk[i] * (pk[i] - 1) / 2
+    } else {
+      tmpids <- which(mystructure == k, arr.ind = TRUE)
+      i <- tmpids[1]
+      j <- tmpids[2]
+      emat[which(mystructure == k)] <- nu_mat[i, j] * pk[i] * pk[j]
+    }
+  }
+  L <- sum(emat[upper.tri(emat, diag = TRUE)]) # total number of edges
+
+  # Calculating community modularity
+  M_C <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    M_C[k] <- emat[k, k] / L - ((d_within[k] + d_between[k]) / (2 * L))^2 # modularity of community k
+  }
+
+  # Calculating overall modularity
+  M <- sum(M_C)
+
+  return(list(
+    total_within_degree_c = d_within,
+    total_between_degree_c = d_between,
+    weak_community = weak_community,
+    total_number_edges_c = emat,
+    modularity = M
+  ))
+}
