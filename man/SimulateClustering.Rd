@@ -67,12 +67,14 @@ pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
 this argument is only used for \code{topology="random"} or
 \code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}).}
+\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
+provided.}
 
 \item{nu_between}{expected density (number of edges over the number of node
 pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
 By default, the same density is used for within and between blocks
-(\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.}
+(\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.
+Only used if \code{nu_mat} is not provided.}
 
 \item{v_within}{vector defining the (range of) nonzero entries in the
 diagonal blocks of the precision matrix. These values must be between -1
@@ -166,6 +168,11 @@ simul <- SimulateClustering(
 )
 print(simul)
 plot(simul)
+
+# Checking the proportion of explained variance
+x <- simul$data[, 1]
+z <- as.factor(simul$theta)
+summary(lm(x ~ z)) # R-squared
 
 
 ## Example with 2 variables contributing to clustering

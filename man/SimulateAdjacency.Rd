@@ -10,6 +10,7 @@ SimulateAdjacency(
   topology = "random",
   nu_within = 0.1,
   nu_between = 0,
+  nu_mat = NULL,
   ...
 )
 }
@@ -39,12 +40,17 @@ pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
 this argument is only used for \code{topology="random"} or
 \code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}).}
+\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
+provided.}
 
 \item{nu_between}{expected density (number of edges over the number of node
 pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
 By default, the same density is used for within and between blocks
-(\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.}
+(\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.
+Only used if \code{nu_mat} is not provided.}
+
+\item{nu_mat}{matrix of probabilities of having an edge between nodes
+belonging to a given pair of communities.}
 
 \item{...}{additional arguments passed to the graph simulation function
 provided in \code{implementation}.}

@@ -27,11 +27,15 @@
 #'   the expected density of the graph. If \code{implementation=HugeAdjacency},
 #'   this argument is only used for \code{topology="random"} or
 #'   \code{topology="cluster"} (see argument \code{prob} in
-#'   \code{\link[huge]{huge.generator}}).
+#'   \code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
+#'   provided.
 #' @param nu_between expected density (number of edges over the number of node
 #'   pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
 #'   By default, the same density is used for within and between blocks
 #'   (\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.
+#'   Only used if \code{nu_mat} is not provided.
+#' @param nu_mat matrix of probabilities of having an edge between nodes
+#'   belonging to a given pair of communities.
 #' @param output_matrices logical indicating if the true precision and (partial)
 #'   correlation matrices should be included in the output.
 #' @param v_within vector defining the (range of) nonzero entries in the
@@ -198,7 +202,7 @@
 #' @export
 SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
                               implementation = HugeAdjacency, topology = "random",
-                              nu_within = 0.1, nu_between = NULL,
+                              nu_within = 0.1, nu_between = NULL, nu_mat = NULL,
                               v_within = c(0.5, 1), v_between = c(0.1, 0.2),
                               v_sign = c(-1, 1), continuous = TRUE,
                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
@@ -222,7 +226,7 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
     theta <- SimulateAdjacency(
       pk = pk,
       implementation = implementation, topology = topology,
-      nu_within = nu_within, nu_between = nu_between, ...
+      nu_within = nu_within, nu_between = nu_between, nu_mat = nu_mat, ...
     )
   }
 
@@ -860,6 +864,11 @@ SimulateRegression <- function(n = 100, pk = 10, N = 3,
 #' print(simul)
 #' plot(simul)
 #'
+#' # Checking the proportion of explained variance
+#' x <- simul$data[, 1]
+#' z <- as.factor(simul$theta)
+#' summary(lm(x ~ z)) # R-squared
+#'
 #'
 #' ## Example with 2 variables contributing to clustering
 #'
@@ -1070,6 +1079,9 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
     mu_mat[is.na(mu_mat)] <- 0
   }
 
+  # Updating the within-cluster covariance matrix
+  out$sigma <- out$sigma * sqrt(cbind(1 - ev_xc) %*% rbind(1 - ev_xc))
+
   # Definition of contributing variables
   colnames(theta_xc) <- colnames(out$data)
   out$theta_xc <- theta_xc
@@ -1146,7 +1158,9 @@ SimulateAdjacency <- function(pk = 10,
                               implementation = HugeAdjacency,
                               topology = "random",
                               nu_within = 0.1,
-                              nu_between = 0, ...) {
+                              nu_between = 0,
+                              nu_mat = NULL,
+                              ...) {
   # Storing all arguments
   args <- c(mget(ls()), list(...))
 
@@ -1158,6 +1172,20 @@ SimulateAdjacency <- function(pk = 10,
     }
   }
 
+  # Creating the matrix of probabilities
+  if (is.null(nu_mat)) {
+    if (is.null(nu_within) | is.null(nu_between)) {
+      stop("Arguments 'nu_within', 'nu_between' and 'nu_mat' are missing: 'nu_mat' or both 'nu_within' and 'nu_between' must be provided.")
+    }
+    nu_mat <- diag(length(pk)) * nu_within
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
+  } else {
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
+  }
+
   # Creating matrix with block indices
   bigblocks <- BlockMatrix(pk)
   bigblocks_vect <- bigblocks[upper.tri(bigblocks)]
@@ -1165,6 +1193,9 @@ SimulateAdjacency <- function(pk = 10,
   # Making as factor to allow for groups with 1 variable (for clustering)
   bigblocks_vect <- factor(bigblocks_vect, levels = seq(1, max(bigblocks)))
   block_ids <- unique(as.vector(bigblocks))
+
+  # Creating matrix with block structure
+  blocks <- BlockStructure(pk)
 
   # Identifying relevant arguments
   if (!"..." %in% names(formals(implementation))) {
@@ -1179,19 +1210,25 @@ SimulateAdjacency <- function(pk = 10,
       theta <- matrix(0, nrow = sum(pk), ncol = sum(pk))
       theta_vect <- theta[upper.tri(theta)]
 
-      # Allowing for different densities in within and between blocks
-      theta_w <- do.call(implementation, args = c(args, list(nu = nu_within)))
-      theta_w_vect <- theta_w[upper.tri(theta_w)]
-      theta_b <- do.call(implementation, args = c(args, list(nu = nu_between)))
-      theta_b_vect <- theta_b[upper.tri(theta_b)]
+      # # Allowing for different densities in within and between blocks
+      # theta_w <- do.call(implementation, args = c(args, list(nu = nu_within)))
+      # theta_w_vect <- theta_w[upper.tri(theta_w)]
+      # theta_b <- do.call(implementation, args = c(args, list(nu = nu_between)))
+      # theta_b_vect <- theta_b[upper.tri(theta_b)]
 
       # Filling within and between blocks
       for (k in block_ids) {
-        if (k %in% unique(diag(bigblocks))) {
-          theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
-        } else {
-          theta_vect[bigblocks_vect == k] <- theta_b_vect[bigblocks_vect == k]
-        }
+        tmpids <- which(blocks == k, arr.ind = TRUE)
+        i <- tmpids[1]
+        j <- tmpids[2]
+        theta_w <- do.call(implementation, args = c(args, list(nu = nu_mat[i, j])))
+        theta_w_vect <- theta_w[upper.tri(theta_w)]
+        theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
+        # if (k %in% unique(diag(bigblocks))) {
+        #   theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
+        # } else {
+        #   theta_vect[bigblocks_vect == k] <- theta_b_vect[bigblocks_vect == k]
+        # }
       }
       theta[upper.tri(theta)] <- theta_vect
       theta <- theta + t(theta)
@@ -1257,4 +1294,121 @@ HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
   theta <- theta[ids, ids]
 
   return(theta)
+}
+
+
+
+
+#' Simulation of precision matrix
+#'
+#' Simulates a sparse precision matrix from a binary adjacency matrix
+#' \code{theta} encoding conditional independence in a Gaussian Graphical Model.
+#'
+#' @inheritParams SimulateGraphical
+#' @param theta binary and symmetric adjacency matrix encoding the conditional
+#'   independence structure.
+#' @param scale logical indicating if the proportion of explained variance by
+#'   PC1 should be computed from the correlation (\code{scale=TRUE}) or
+#'   covariance (\code{scale=FALSE}) matrix.
+#'
+#' @return A list with: \item{omega}{true simulated precision matrix.}
+#'   \item{u}{value of the constant u used to ensure that \code{omega} is
+#'   positive definite.}
+#'
+#' @seealso \code{\link{SimulateGraphical}}, \code{\link{MakePositiveDefinite}}
+#'
+#' @details Entries that are equal to zero in the adjacency matrix \code{theta}
+#'   are also equal to zero in the generated precision matrix. These zero
+#'   entries indicate conditional independence between the corresponding pair of
+#'   variables (see \code{\link{SimulateGraphical}}).
+#'
+#'   Argument \code{pk} can be specified to create groups of variables and allow
+#'   for nonzero precision entries to be sampled from different distributions
+#'   between two variables belonging to the same group or to different groups.
+#'
+#'   If \code{continuous=FALSE}, nonzero off-diagonal entries of the precision
+#'   matrix are sampled from a discrete uniform distribution taking values in
+#'   \code{v_within} (for entries in the diagonal block) or \code{v_between}
+#'   (for entries in off-diagonal blocks). If \code{continuous=TRUE}, nonzero
+#'   off-diagonal entries are sampled from a continuous uniform distribution
+#'   taking values in the range given by \code{v_within} or \code{v_between}.
+#'
+#'   Diagonal entries of the precision matrix are defined to ensure positive
+#'   definiteness as described in \code{\link{MakePositiveDefinite}}.
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
+#'
+#' @examples
+#' # Simulation of an adjacency matrix
+#' theta <- SimulateAdjacency(pk = c(5, 5), nu_within = 0.7)
+#' print(theta)
+#'
+#' # Simulation of a precision matrix maximising the contrast
+#' simul <- SimulatePrecision(theta = theta)
+#' print(simul$omega)
+#'
+#' # Simulation of a precision matrix with specific ev by PC1
+#' simul <- SimulatePrecision(
+#'   theta = theta,
+#'   pd_strategy = "min_eigenvalue",
+#'   ev_xx = 0.3, scale = TRUE
+#' )
+#' print(simul$omega)
+#' @export
+SimulatePrecision <- function(pk = NULL, theta,
+                              v_within = c(0.5, 1), v_between = c(0, 0.1),
+                              v_sign = c(-1, 1), continuous = TRUE,
+                              pd_strategy = "diagonally_dominant", ev_xx = NULL, scale = TRUE,
+                              u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25) {
+  # Checking inputs and defining pk
+  if (is.null(pk)) {
+    pk <- ncol(theta)
+  } else {
+    if (sum(pk) != ncol(theta)) {
+      stop("Arguments 'pk' and 'theta' are not consistent. The sum of 'pk' entries must be equal to the number of rows and columns in 'theta'.")
+    }
+  }
+
+  # Checking the choice of pd_strategy
+  if (!pd_strategy %in% c("diagonally_dominant", "min_eigenvalue")) {
+    stop("Invalid input for argument 'pd_strategy'. Possible values are: 'diagonally_dominant' or 'min_eigenvalue'.")
+  }
+
+  # Checking other input values
+  if (any((v_within < 0) | (v_within > 1))) {
+    stop("Invalid input for argument 'v_within'. Values must be between 0 and 1.")
+  }
+  if (any((v_between < 0) | (v_between > 1))) {
+    stop("Invalid input for argument 'v_between'. Values must be between 0 and 1.")
+  }
+  if (any(!v_sign %in% c(-1, 1))) {
+    stop("Invalid input for argument 'v_sign'. Possible values are -1 and 1.")
+  }
+
+  # Ensuring that v values are lower than or equal to 1
+  if (any(abs(v_within) > 1)) {
+    v_within <- v_within / max(abs(v_within))
+    message("The values provided in 'v_within' have been re-scaled to be lower than or equal to 1 in absolute value.")
+  }
+
+  # Ensuring that diagonal entries of theta are zero
+  diag(theta) <- 0
+
+  # Building v matrix
+  v <- SimulateSymmetricMatrix(
+    pk = pk, v_within = v_within, v_between = v_between,
+    v_sign = v_sign, continuous = continuous
+  )
+
+  # Filling off-diagonal entries of the precision matrix
+  omega_tilde <- theta * v
+
+  # Ensuring positive definiteness
+  omega_pd <- MakePositiveDefinite(
+    omega = omega_tilde, pd_strategy = pd_strategy,
+    ev_xx = ev_xx, scale = scale, u_list = u_list, tol = tol
+  )
+
+  # Returning the output
+  return(omega_pd)
 }
