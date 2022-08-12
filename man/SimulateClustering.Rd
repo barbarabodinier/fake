@@ -15,6 +15,7 @@ SimulateClustering(
   topology = "random",
   nu_within = 0,
   nu_between = NULL,
+  nu_mat = NULL,
   v_within = c(0.5, 1),
   v_between = c(0, 0.1),
   v_sign = c(-1, 1),
@@ -75,6 +76,9 @@ to different groups, as defined in \code{pk}. By default, the same density
 is used for within and between blocks (\code{nu_within}=\code{nu_between}).
 Only used if \code{length(pk)>1}. Only used if \code{nu_mat} is not
 provided.}
+
+\item{nu_mat}{matrix of probabilities of having an edge between nodes
+belonging to a given pair of node groups defined in \code{pk}.}
 
 \item{v_within}{vector defining the (range of) nonzero entries in the
 diagonal blocks of the precision matrix. These values must be between -1
