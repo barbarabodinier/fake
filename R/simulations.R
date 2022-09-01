@@ -1100,6 +1100,83 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 }
 
 
+# SimulateSCM <- function(n = 100,
+#                         pk = c(5, 5, 5),
+#                         theta = NULL,
+#                         nu_within = 0.5,
+#                         v_within = c(0.5, 1),
+#                         v_sign = c(-1, 1),
+#                         continuous = TRUE,
+#                         scale = TRUE,
+#                         output_matrices = FALSE) {
+#   # Definition of undirected graph with connected components
+#   if (is.null(theta)) {
+#     p <- sum(pk)
+#     theta <- SimulateAdjacency(
+#       pk = pk,
+#       topology = "random",
+#       nu_within = nu_within,
+#       nu_between = 0
+#     )
+#     theta[lower.tri(theta)] <- 0
+#   } else {
+#     p <- pk <- ncol(theta)
+#   }
+#
+#   # Simulating path coefficients (no need to be p.d.)
+#   set.seed(1)
+#   random_mat <- SimulateSymmetricMatrix(
+#     pk = p,
+#     v_within = v_within,
+#     v_between = 0,
+#     v_sign = v_sign,
+#     continuous = continuous
+#   )
+#   L <- abs(random_mat) * theta
+#
+#   # Defining identity matrix
+#   I <- diag(p)
+#
+#   # Simulating residual variance (all 1 for now)
+#   D <- diag(p)
+#
+#   # Computing corresponding precision matrix (p.d. by definition)
+#   omega <- (I - L) %*% solve(D) %*% t(I - L)
+#
+#   # Computing the covariance matrix
+#   if (scale) {
+#     sigma <- stats::cov2cor(solve(omega))
+#   } else {
+#     sigma <- solve(omega)
+#   }
+#
+#   # Computing the partial correlation matrix
+#   if (output_matrices) {
+#     phi <- -stats::cov2cor(omega) + 2 * diag(ncol(omega))
+#   }
+#
+#   # Simulating data from multivariate normal distribution
+#   x <- MASS::mvrnorm(n, rep(0, p), sigma)
+#   colnames(x) <- paste0("var", 1:ncol(x))
+#   rownames(x) <- paste0("obs", 1:nrow(x))
+#
+#   if (output_matrices) {
+#     out <- list(
+#       data = x, theta = theta,
+#       path = L, residual_var = diag(D),
+#       omega = omega, phi = phi, sigma = sigma
+#     )
+#   } else {
+#     out <- list(data = x, theta = theta)
+#   }
+#
+#   # Defining the class
+#   class(out) <- "simulation_structural_causal_model"
+#
+#   return(out)
+# }
+
+
 #' Simulation of undirected graph with block structure
 #'
 #' Simulates the adjacency matrix of an unweighted, undirected graph with no
