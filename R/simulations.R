@@ -961,7 +961,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       pk <- ncol(theta_xc)
     } else {
       if (sum(pk) != ncol(theta_xc)) {
-        warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('theta_xc').")
+        # warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('theta_xc').")
         pk <- ncol(theta_xc)
       }
     }
