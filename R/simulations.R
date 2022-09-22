@@ -1202,7 +1202,7 @@ SimulateSCM <- function(n = 100,
   set.seed(1)
   random_mat <- SimulateSymmetricMatrix(
     pk = p,
-    v_within = 0,
+    v_within = v_between,
     v_between = v_between,
     v_sign = v_sign,
     continuous = continuous
