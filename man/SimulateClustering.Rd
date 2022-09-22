@@ -100,9 +100,9 @@ negative partial correlations.}
 \item{continuous}{logical indicating whether to sample precision values from
 a uniform distribution between the minimum and maximum values in
 \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=TRUE}) or from proposed values in \code{v_within}
-(diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=FALSE}).}
+(if \code{continuous=TRUE}) or from proposed values in \code{v_within}
+(diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
+\code{continuous=FALSE}).}
 
 \item{pd_strategy}{method to ensure that the generated precision matrix is
 positive definite (and hence can be a covariance matrix). If
@@ -251,6 +251,7 @@ Other simulation functions:
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()},
-\code{\link{SimulateRegression}()}
+\code{\link{SimulateRegression}()},
+\code{\link{SimulateSCM}()}
 }
 \concept{simulation functions}

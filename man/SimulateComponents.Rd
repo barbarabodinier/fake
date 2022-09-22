@@ -28,8 +28,7 @@ SimulateComponents(
 The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 groups, the simulated (partial) correlation matrix has a block structure,
 where blocks arise from the integration of the \code{length(pk)} groups.
-This argument is only used if \code{sum(pk)} is equal to the number of
-rows/columns in \code{theta} is not provided.}
+This argument is only used if \code{theta} is not provided.}
 
 \item{adjacency}{optional binary and symmetric adjacency matrix encoding the
 conditional graph structure between observations. The clusters encoded in
@@ -61,9 +60,9 @@ negative partial correlations.}
 \item{continuous}{logical indicating whether to sample precision values from
 a uniform distribution between the minimum and maximum values in
 \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=TRUE}) or from proposed values in \code{v_within}
-(diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=FALSE}).}
+(if \code{continuous=TRUE}) or from proposed values in \code{v_within}
+(diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
+\code{continuous=FALSE}).}
 
 \item{pd_strategy}{method to ensure that the generated precision matrix is
 positive definite (and hence can be a covariance matrix). If
@@ -167,6 +166,7 @@ Other simulation functions:
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateGraphical}()},
-\code{\link{SimulateRegression}()}
+\code{\link{SimulateRegression}()},
+\code{\link{SimulateSCM}()}
 }
 \concept{simulation functions}

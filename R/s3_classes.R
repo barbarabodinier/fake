@@ -6,6 +6,13 @@ print.simulation_graphical_model <- function(x, ...) {
 
 
 #' @export
+print.simulation_structural_causal_model <- function(x, ...) {
+  cat(paste0("Multivariate Normal data with underlying structure of a structural causal model."))
+  cat("\n")
+}
+
+
+#' @export
 print.simulation_clustering <- function(x, ...) {
   cat(paste0("Multivariate Normal data with underlying clusters of participants along (a subset of) variables."))
   cat("\n")
@@ -33,6 +40,17 @@ summary.simulation_graphical_model <- function(object, ...) {
   cat(paste0("Number of variables (nodes): ", ncol(object$data)))
   cat("\n")
   cat(paste0("Number of edges: ", sum(object$theta == 1) / 2))
+  cat("\n")
+}
+
+
+#' @export
+summary.simulation_structural_causal_model <- function(object, ...) {
+  cat(paste0("Number of observations: ", nrow(object$data)))
+  cat("\n")
+  cat(paste0("Number of variables (nodes): ", ncol(object$data)))
+  cat("\n")
+  cat(paste0("Number of arrows: ", sum(object$theta == 1)))
   cat("\n")
 }
 
@@ -105,6 +123,31 @@ plot.simulation_graphical_model <- function(x, ...) {
   igraph::E(mygraph)$width <- 0.5
 
   igraph::plot.igraph(mygraph, ...)
+
+  return(invisible(mygraph))
+}
+
+
+#' @export
+plot.simulation_structural_causal_model <- function(x, ...) {
+  mygraph <- igraph::graph_from_adjacency_matrix(x$theta, mode = "directed")
+
+  # Formatting vertices
+  mydegrees <- igraph::degree(mygraph)
+  igraph::V(mygraph)$size <- as.numeric(as.character(cut(mydegrees, breaks = 4, labels = c(3, 4, 5, 6))))
+  igraph::V(mygraph)$color <- "skyblue"
+  igraph::V(mygraph)$frame.color <- igraph::V(mygraph)$color
+  igraph::V(mygraph)$label.family <- "sans"
+  igraph::V(mygraph)$label.cex <- as.numeric(as.character(cut(mydegrees, breaks = 4, labels = c(0.4, 0.45, 0.5, 0.55))))
+  igraph::V(mygraph)$label.color <- "grey20"
+
+  # Formatting edges
+  igraph::E(mygraph)$color <- "grey60"
+  igraph::E(mygraph)$width <- 0.5
+
+  igraph::plot.igraph(mygraph, ...)
+
+  return(invisible(mygraph))
 }
 
 

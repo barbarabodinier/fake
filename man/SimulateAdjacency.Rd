@@ -19,8 +19,7 @@ SimulateAdjacency(
 The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 groups, the simulated (partial) correlation matrix has a block structure,
 where blocks arise from the integration of the \code{length(pk)} groups.
-This argument is only used if \code{sum(pk)} is equal to the number of
-rows/columns in \code{theta} is not provided.}
+This argument is only used if \code{theta} is not provided.}
 
 \item{implementation}{function for simulation of the graph. By default,
 algorithms implemented in \code{\link[huge]{huge.generator}} are used.
@@ -113,6 +112,7 @@ Other simulation functions:
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()},
-\code{\link{SimulateRegression}()}
+\code{\link{SimulateRegression}()},
+\code{\link{SimulateSCM}()}
 }
 \concept{simulation functions}

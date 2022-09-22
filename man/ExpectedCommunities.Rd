@@ -11,8 +11,7 @@ ExpectedCommunities(pk, nu_within = 0.1, nu_between = 0, nu_mat = NULL)
 The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 groups, the simulated (partial) correlation matrix has a block structure,
 where blocks arise from the integration of the \code{length(pk)} groups.
-This argument is only used if \code{sum(pk)} is equal to the number of
-rows/columns in \code{theta} is not provided.}
+This argument is only used if \code{theta} is not provided.}
 
 \item{nu_within}{probability of having an edge between two nodes belonging to
 the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is

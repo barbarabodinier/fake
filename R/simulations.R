@@ -7,8 +7,7 @@
 #'   The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 #'   groups, the simulated (partial) correlation matrix has a block structure,
 #'   where blocks arise from the integration of the \code{length(pk)} groups.
-#'   This argument is only used if \code{sum(pk)} is equal to the number of
-#'   rows/columns in \code{theta} is not provided.
+#'   This argument is only used if \code{theta} is not provided.
 #' @param theta optional binary and symmetric adjacency matrix encoding the
 #'   conditional independence structure.
 #' @param implementation function for simulation of the graph. By default,
@@ -55,9 +54,9 @@
 #' @param continuous logical indicating whether to sample precision values from
 #'   a uniform distribution between the minimum and maximum values in
 #'   \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=TRUE}) or from proposed values in \code{v_within}
-#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=FALSE}).
+#'   (if \code{continuous=TRUE}) or from proposed values in \code{v_within}
+#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
+#'   \code{continuous=FALSE}).
 #' @param pd_strategy method to ensure that the generated precision matrix is
 #'   positive definite (and hence can be a covariance matrix). If
 #'   \code{pd_strategy="diagonally_dominant"}, the precision matrix is made
@@ -94,7 +93,7 @@
 #'
 #' @return A list with: \item{data}{simulated data with \code{n} observation and
 #'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
-#'   graph} \item{omega}{simulated (true) precision matrix. Only returned if
+#'   graph.} \item{omega}{simulated (true) precision matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
 #'   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
 #'   \item{sigma}{simulated (true) covariance matrix. Only returned if
@@ -1100,81 +1099,157 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 }
 
 
-# SimulateSCM <- function(n = 100,
-#                         pk = c(5, 5, 5),
-#                         theta = NULL,
-#                         nu_within = 0.5,
-#                         v_within = c(0.5, 1),
-#                         v_sign = c(-1, 1),
-#                         continuous = TRUE,
-#                         scale = TRUE,
-#                         output_matrices = FALSE) {
-#   # Definition of undirected graph with connected components
-#   if (is.null(theta)) {
-#     p <- sum(pk)
-#     theta <- SimulateAdjacency(
-#       pk = pk,
-#       topology = "random",
-#       nu_within = nu_within,
-#       nu_between = 0
-#     )
-#     theta[lower.tri(theta)] <- 0
-#   } else {
-#     p <- pk <- ncol(theta)
-#   }
-#
-#   # Simulating path coefficients (no need to be p.d.)
-#   set.seed(1)
-#   random_mat <- SimulateSymmetricMatrix(
-#     pk = p,
-#     v_within = v_within,
-#     v_between = 0,
-#     v_sign = v_sign,
-#     continuous = continuous
-#   )
-#   L <- abs(random_mat) * theta
-#
-#   # Defining identity matrix
-#   I <- diag(p)
-#
-#   # Simulating residual variance (all 1 for now)
-#   D <- diag(p)
-#
-#   # Computing corresponding precision matrix (p.d. by definition)
-#   omega <- (I - L) %*% solve(D) %*% t(I - L)
-#
-#   # Computing the covariance matrix
-#   if (scale) {
-#     sigma <- stats::cov2cor(solve(omega))
-#   } else {
-#     sigma <- solve(omega)
-#   }
-#
-#   # Computing the partial correlation matrix
-#   if (output_matrices) {
-#     phi <- -stats::cov2cor(omega) + 2 * diag(ncol(omega))
-#   }
-#
-#   # Simulating data from multivariate normal distribution
-#   x <- MASS::mvrnorm(n, rep(0, p), sigma)
-#   colnames(x) <- paste0("var", 1:ncol(x))
-#   rownames(x) <- paste0("obs", 1:nrow(x))
-#
-#   if (output_matrices) {
-#     out <- list(
-#       data = x, theta = theta,
-#       path = L, residual_var = diag(D),
-#       omega = omega, phi = phi, sigma = sigma
-#     )
-#   } else {
-#     out <- list(data = x, theta = theta)
-#   }
-#
-#   # Defining the class
-#   class(out) <- "simulation_structural_causal_model"
-#
-#   return(out)
-# }
+#' Data simulation for Structural Causal Modelling
+#'
+#' Simulates data from a Structural Causal Model (SCM). To ensure that the
+#' generated SCM is identifiable, the nodes are organised by layers, with no
+#' causal effects within layers.
+#'
+#' @inheritParams SimulateGraphical
+#'
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
+#'   \code{\link{Contrast}}
+#' @param nu_between probability of having an edge between two nodes belonging
+#'   to different layers, as defined in \code{pk}. If \code{length(pk)=1}, this
+#'   is the expected density of the graph.
+#' @param v_between vector defining the (range of) nonzero path coefficients. If
+#'   \code{continuous=FALSE}, \code{v_between} is the set of possible values. If
+#'   \code{continuous=TRUE}, \code{v_between} is the range of possible values.
+#' @param v_sign vector of possible signs for path coefficients. Possible inputs
+#'   are: \code{1} for positive coefficients, \code{-1} for negative
+#'   coefficients, or \code{c(-1, 1)} for both positive and negative
+#'   coefficients.
+#' @param continuous logical indicating whether to sample path coefficients from
+#'   a uniform distribution between the minimum and maximum values in
+#'   \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
+#'   \code{v_between} (if \code{continuous=FALSE}).
+#' @param residual_var vector of residual variances. The length of the vector
+#'   should be equal to \code{sum(pk)} or \code{ncol(theta)}. The same value is
+#'   used for all variables if a single value is provided (the default).
+#' @param output_matrices logical indicating if the true path coefficients,
+#'   residual variances, and precision and (partial) correlation matrices should
+#'   be included in the output.
+#'
+#' @family simulation functions
+#'
+#' @return A list with: \item{data}{simulated data with \code{n} observation and
+#'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
+#'   Directed Acyclic Graph encoding causal relationships.}
+#'   \item{path_coef}{simulated (true) matrix of path coefficients. Only
+#'   returned if \code{output_matrices=TRUE}.} \item{omega}{simulated (true)
+#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
+#'   matrix. Only returned if \code{output_matrices=TRUE}.}
+#'
+#' @examples
+#' # Simulation of a layered SCM
+#' set.seed(1)
+#' pk <- c(3, 5, 4)
+#' simul <- SimulateSCM(n = 100, pk = pk)
+#' print(simul)
+#' summary(simul)
+#'
+#' # Visualisation of the layers
+#' if (requireNamespace("igraph", quietly = TRUE)) {
+#'   mygraph <- plot(simul)
+#'   igraph::plot.igraph(mygraph,
+#'     layout = igraph::layout_with_sugiyama(mygraph,
+#'       layers = rep.int(1:length(pk), times = pk)
+#'     )
+#'   )
+#' }
+#' @export
+SimulateSCM <- function(n = 100,
+                        pk = c(5, 5, 5),
+                        theta = NULL,
+                        nu_between = 0.5,
+                        v_between = c(0.5, 1),
+                        v_sign = c(-1, 1),
+                        continuous = TRUE,
+                        residual_var = 1,
+                        scale = TRUE,
+                        output_matrices = FALSE) {
+  # Definition of undirected graph with connected components
+  if (is.null(theta)) {
+    p <- sum(pk)
+    theta <- SimulateAdjacency(
+      pk = pk,
+      topology = "random",
+      nu_within = 0,
+      nu_between = nu_between
+    )
+    theta[lower.tri(theta)] <- 0
+  } else {
+    p <- pk <- ncol(theta)
+  }
+
+  # Definition of the residual variances
+  if (length(residual_var) == 1) {
+    residual_var <- rep(residual_var, p)
+  } else {
+    if (length(residual_var) != p) {
+      warning(paste0("Arguments are not consistent. The length of 'residual_var' needs to be equal to the number of variables (p=", p, "). The first entry was used."))
+      residual_var <- rep(residual_var[1], p)
+    }
+  }
+  if (any(residual_var <= 0)) {
+    warning("All entries in 'residual_var' need to be strictly positive. The absolute value was taken.")
+    residual_var <- abs(residual_var)
+  }
+
+  # Simulating path coefficients (no need to be p.d.)
+  set.seed(1)
+  random_mat <- SimulateSymmetricMatrix(
+    pk = p,
+    v_within = 0,
+    v_between = v_between,
+    v_sign = v_sign,
+    continuous = continuous
+  )
+  L <- abs(random_mat) * theta
+
+  # Defining identity matrix
+  I <- diag(p)
+
+  # Simulating residual variance (all 1 for now)
+  D <- diag(residual_var)
+
+  # Computing corresponding precision matrix (p.d. by definition)
+  omega <- (I - L) %*% solve(D) %*% t(I - L)
+
+  # Computing the covariance matrix
+  if (scale) {
+    sigma <- stats::cov2cor(solve(omega))
+  } else {
+    sigma <- solve(omega)
+  }
+
+  # Computing the partial correlation matrix
+  if (output_matrices) {
+    phi <- -stats::cov2cor(omega) + 2 * diag(ncol(omega))
+  }
+
+  # Simulating data from multivariate normal distribution
+  x <- MASS::mvrnorm(n, rep(0, p), sigma)
+  colnames(x) <- paste0("var", 1:ncol(x))
+  rownames(x) <- paste0("obs", 1:nrow(x))
+
+  if (output_matrices) {
+    out <- list(
+      data = x, theta = theta,
+      path_coef = L, residual_var = diag(D),
+      omega = omega, phi = phi, sigma = sigma
+    )
+  } else {
+    out <- list(data = x, theta = theta)
+  }
+
+  # Defining the class
+  class(out) <- "simulation_structural_causal_model"
+
+  return(out)
+}
 
 
 #' Simulation of undirected graph with block structure
