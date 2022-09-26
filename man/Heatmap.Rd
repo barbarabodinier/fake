@@ -18,6 +18,7 @@ Heatmap(
   legend = TRUE,
   legend_length = NULL,
   legend_range = NULL,
+  cex.legend = 1,
   ...
 )
 }
@@ -52,6 +53,8 @@ should be displayed.}
 \item{legend_length}{length of the colour bar.}
 
 \item{legend_range}{range of the colour bar.}
+
+\item{cex.legend}{font size for legend.}
 
 \item{...}{additional arguments passed to \code{\link[base]{formatC}} for
 number formatting. Only used if \code{text=TRUE}.}
