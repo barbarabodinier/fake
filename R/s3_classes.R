@@ -153,7 +153,7 @@ plot.simulation_structural_causal_model <- function(x, ...) {
 
 #' @export
 plot.adjacency_matrix <- function(x, ...) {
-  mygraph <- igraph::graph_from_adjacency_matrix(x, mode = "undirected")
+  mygraph <- igraph::graph_from_adjacency_matrix(x, mode = ifelse(isSymmetric(x), yes = "undirected", no = "directed"))
 
   # Formatting vertices
   mydegrees <- igraph::degree(mygraph)
@@ -168,7 +168,16 @@ plot.adjacency_matrix <- function(x, ...) {
   igraph::E(mygraph)$color <- "grey60"
   igraph::E(mygraph)$width <- 0.5
 
-  igraph::plot.igraph(mygraph, ...)
+  # Graph layout
+  if (all(x[lower.tri(x)] == 0)) {
+    layout <- igraph::layout_with_sugiyama(mygraph)
+  } else {
+    layout <- igraph::layout_with_fr(mygraph)
+  }
+
+  igraph::plot.igraph(mygraph, layout = layout, ...)
+
+  return(invisible(mygraph))
 }
 
 
