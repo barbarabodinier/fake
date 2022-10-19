@@ -265,7 +265,6 @@ Other simulation functions:
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
-\code{\link{SimulateGraphical}()},
-\code{\link{SimulateSCM}()}
+\code{\link{SimulateGraphical}()}
 }
 \concept{simulation functions}

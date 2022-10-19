@@ -253,7 +253,6 @@ Other simulation functions:
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
-\code{\link{SimulateRegression}()},
-\code{\link{SimulateSCM}()}
+\code{\link{SimulateRegression}()}
 }
 \concept{simulation functions}
