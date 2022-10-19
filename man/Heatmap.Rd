@@ -18,6 +18,7 @@ Heatmap(
   legend = TRUE,
   legend_length = NULL,
   legend_range = NULL,
+  cex.legend = 1,
   ...
 )
 }
@@ -53,6 +54,8 @@ should be displayed.}
 
 \item{legend_range}{range of the colour bar.}
 
+\item{cex.legend}{font size for legend.}
+
 \item{...}{additional arguments passed to \code{\link[base]{formatC}} for
 number formatting. Only used if \code{text=TRUE}.}
 }
@@ -68,12 +71,13 @@ par(mar = c(3, 3, 1, 5))
 
 # Data simulation
 set.seed(1)
-mat <- matrix(rnorm(200), ncol = 20)
+mat <- matrix(rnorm(100), ncol = 10)
 rownames(mat) <- paste0("r", 1:nrow(mat))
 colnames(mat) <- paste0("c", 1:ncol(mat))
 
 # Generating heatmaps
 Heatmap(mat = mat)
+Heatmap(mat = mat, text = TRUE, format = "f", digits = 2)
 Heatmap(
   mat = mat,
   col = c("lightgrey", "blue", "black"),

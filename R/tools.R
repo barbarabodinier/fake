@@ -1,252 +1,3 @@
-#' Simulation of symmetric matrix with block structure
-#'
-#' Simulates a symmetric matrix with block structure. If
-#' \code{continuous=FALSE}, matrix entries are sampled from a discrete uniform
-#' distribution taking values in \code{v_within} (for entries in the diagonal
-#' block) or \code{v_between} (for entries in off-diagonal blocks). If
-#' \code{continuous=TRUE}, entries are sampled from a continuous uniform
-#' distribution taking values in the range given by \code{v_within} or
-#' \code{v_between}.
-#'
-#' @param pk vector of the number of variables per group, defining the block
-#'   structure.
-#' @param v_within vector defining the (range of) nonzero entries in the
-#'   diagonal blocks. If \code{continuous=FALSE}, \code{v_within} is the set of
-#'   possible values. If \code{continuous=FALSE}, \code{v_within} is the range
-#'   of possible values.
-#' @param v_between vector defining the (range of) nonzero entries in the
-#'   off-diagonal blocks. If \code{continuous=FALSE}, \code{v_between} is the
-#'   set of possible precision values. If \code{continuous=FALSE},
-#'   \code{v_between} is the range of possible precision values. This argument
-#'   is only used if \code{length(pk)>1}.
-#' @param v_sign vector of possible signs for matrix entries. Possible inputs
-#'   are: \code{-1} for negative entries only, \code{1} for positive entries
-#'   only, or \code{c(-1, 1)} for both positive and negative entries.
-#' @param continuous logical indicating whether to sample precision values from
-#'   a uniform distribution between the minimum and maximum values in
-#'   \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=TRUE}) or from proposed values in \code{v_within}
-#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=FALSE}).
-#'
-#' @return A symmetric matrix with uniformly distributed entries sampled from
-#'   different distributions for diagonal and off-diagonal blocks.
-#'
-#' @keywords internal
-SimulateSymmetricMatrix <- function(pk = 10,
-                                    v_within = c(0.5, 1), v_between = c(0, 0.1),
-                                    v_sign = c(-1, 1), continuous = FALSE) {
-  # Creating matrix with block indices
-  bigblocks <- BlockMatrix(pk)
-  bigblocks_vect <- bigblocks[upper.tri(bigblocks)]
-
-  # Making as factor to allow for groups with 1 variable (for clustering)
-  bigblocks_vect <- factor(bigblocks_vect, levels = seq(1, max(bigblocks)))
-  block_ids <- unique(as.vector(bigblocks))
-
-  # Building absolute v matrix
-  v <- bigblocks
-  v_vect <- v[upper.tri(v)]
-  for (k in block_ids) {
-    if (k %in% v_vect) {
-      if (k %in% unique(diag(bigblocks))) {
-        if (continuous) {
-          v_vect[bigblocks_vect == k] <- stats::runif(sum(bigblocks_vect == k), min = min(v_within), max = max(v_within))
-        } else {
-          v_vect[bigblocks_vect == k] <- base::sample(v_within, size = sum(bigblocks_vect == k), replace = TRUE)
-        }
-      } else {
-        if (continuous) {
-          v_vect[bigblocks_vect == k] <- stats::runif(sum(bigblocks_vect == k), min = min(v_between), max = max(v_between))
-        } else {
-          v_vect[bigblocks_vect == k] <- base::sample(v_between, size = sum(bigblocks_vect == k), replace = TRUE)
-        }
-      }
-    }
-  }
-
-  # Sampling the sign of precision entries
-  v_vect <- v_vect * base::sample(sort(unique(v_sign)), size = length(v_vect), replace = TRUE)
-
-  # Building v matrix
-  diag(v) <- 0
-  v[upper.tri(v)] <- v_vect
-  v[lower.tri(v)] <- 0
-  v <- v + t(v)
-
-  return(v)
-}
-
-
-#' Simulation of precision matrix
-#'
-#' Simulates a sparse precision matrix from a binary adjacency matrix
-#' \code{theta} encoding conditional independence in a Gaussian Graphical Model.
-#'
-#' @inheritParams SimulateGraphical
-#' @param theta binary and symmetric adjacency matrix encoding the conditional
-#'   independence structure.
-#' @param scale logical indicating if the proportion of explained variance by
-#'   PC1 should be computed from the correlation (\code{scale=TRUE}) or
-#'   covariance (\code{scale=FALSE}) matrix.
-#'
-#' @return A list with: \item{omega}{true simulated precision matrix.}
-#'   \item{u}{value of the constant u used to ensure that \code{omega} is
-#'   positive definite.}
-#'
-#' @seealso \code{\link{SimulateGraphical}}, \code{\link{MakePositiveDefinite}}
-#'
-#' @details Entries that are equal to zero in the adjacency matrix \code{theta}
-#'   are also equal to zero in the generated precision matrix. These zero
-#'   entries indicate conditional independence between the corresponding pair of
-#'   variables (see \code{\link{SimulateGraphical}}).
-#'
-#'   Argument \code{pk} can be specified to create groups of variables and allow
-#'   for nonzero precision entries to be sampled from different distributions
-#'   between two variables belonging to the same group or to different groups.
-#'
-#'   If \code{continuous=FALSE}, nonzero off-diagonal entries of the precision
-#'   matrix are sampled from a discrete uniform distribution taking values in
-#'   \code{v_within} (for entries in the diagonal block) or \code{v_between}
-#'   (for entries in off-diagonal blocks). If \code{continuous=TRUE}, nonzero
-#'   off-diagonal entries are sampled from a continuous uniform distribution
-#'   taking values in the range given by \code{v_within} or \code{v_between}.
-#'
-#'   Diagonal entries of the precision matrix are defined to ensure positive
-#'   definiteness as described in \code{\link{MakePositiveDefinite}}.
-#'
-#' @references \insertRef{ourstabilityselection}{fake}
-#'
-#' @examples
-#' # Simulation of an adjacency matrix
-#' theta <- SimulateAdjacency(pk = c(5, 5), nu_within = 0.7)
-#' print(theta)
-#'
-#' # Simulation of a precision matrix maximising the contrast
-#' simul <- SimulatePrecision(theta = theta)
-#' print(simul$omega)
-#'
-#' # Simulation of a precision matrix with specific ev by PC1
-#' simul <- SimulatePrecision(
-#'   theta = theta,
-#'   pd_strategy = "min_eigenvalue",
-#'   ev_xx = 0.3, scale = TRUE
-#' )
-#' print(simul$omega)
-#' @export
-SimulatePrecision <- function(pk = NULL, theta,
-                              v_within = c(0.5, 1), v_between = c(0, 0.1),
-                              v_sign = c(-1, 1), continuous = TRUE,
-                              pd_strategy = "diagonally_dominant", ev_xx = NULL, scale = TRUE,
-                              u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25) {
-  # Checking inputs and defining pk
-  if (is.null(pk)) {
-    pk <- ncol(theta)
-  } else {
-    if (sum(pk) != ncol(theta)) {
-      stop("Arguments 'pk' and 'theta' are not consistent. The sum of 'pk' entries must be equal to the number of rows and columns in 'theta'.")
-    }
-  }
-
-  # Checking the choice of pd_strategy
-  if (!pd_strategy %in% c("diagonally_dominant", "min_eigenvalue")) {
-    stop("Invalid input for argument 'pd_strategy'. Possible values are: 'diagonally_dominant' or 'min_eigenvalue'.")
-  }
-
-  # Checking other input values
-  if (any((v_within < 0) | (v_within > 1))) {
-    stop("Invalid input for argument 'v_within'. Values must be between 0 and 1.")
-  }
-  if (any((v_between < 0) | (v_between > 1))) {
-    stop("Invalid input for argument 'v_between'. Values must be between 0 and 1.")
-  }
-  if (any(!v_sign %in% c(-1, 1))) {
-    stop("Invalid input for argument 'v_sign'. Possible values are -1 and 1.")
-  }
-
-  # Ensuring that v values are lower than or equal to 1
-  if (any(abs(v_within) > 1)) {
-    v_within <- v_within / max(abs(v_within))
-    message("The values provided in 'v_within' have been re-scaled to be lower than or equal to 1 in absolute value.")
-  }
-
-  # Ensuring that diagonal entries of theta are zero
-  diag(theta) <- 0
-
-  # Building v matrix
-  v <- SimulateSymmetricMatrix(
-    pk = pk, v_within = v_within, v_between = v_between,
-    v_sign = v_sign, continuous = continuous
-  )
-
-  # Filling off-diagonal entries of the precision matrix
-  omega_tilde <- theta * v
-
-  # Ensuring positive definiteness
-  omega_pd <- MakePositiveDefinite(
-    omega = omega_tilde, pd_strategy = pd_strategy,
-    ev_xx = ev_xx, scale = scale, u_list = u_list, tol = tol
-  )
-
-  # Returning the output
-  return(omega_pd)
-}
-
-
-#' Simulation of binary contribution status
-#'
-#' Simulates the binary contribution status of potential predictor variables
-#' from different blocks to outcome variables. For each outcome, the set of true
-#' predictors is sampled from one block of potential predictors. If the blocks
-#' of variables are independent, the outcomes will be independent too.
-#'
-#' @inheritParams SimulateSymmetricMatrix
-#' @param q number of outcome variables. By default, one block of predictor is
-#'   linked to one outcome, i.e. \code{q=sum(pk)}.
-#' @param nu vector of probabilities. Each entry corresponds to one block of
-#'   predictors and defines the probability for each predictor within the block
-#'   to be chosen as true predictor of the corresponding outcome variable.
-#' @param orthogonal logical indicating if the outcomes have to be defined from
-#'   independent blocks of predictors as encoded in \code{pk}.
-#'
-#' @return A binary matrix encoding the contribution status of each predictor
-#'   variable (columns) to each outcome variable (rows).
-#'
-#' @keywords internal
-SamplePredictors <- function(pk, q = NULL, nu = 0.1, orthogonal = TRUE) {
-  # Definition of the number of outcome variables
-  if (is.null(q)) {
-    q <- length(pk)
-  }
-  if (length(nu) != q) {
-    nu <- rep(nu[1], q)
-  }
-
-  # Simulation of the binary status for true predictors
-  theta <- matrix(0, nrow = q, ncol = sum(pk))
-  for (k in 1:q) {
-    if (orthogonal) {
-      if (k > 1) {
-        ids <- seq(cumsum(pk)[k - 1] + 1, cumsum(pk)[k])
-      } else {
-        ids <- seq(1, cumsum(pk)[k])
-      }
-      theta[k, ids] <- stats::rbinom(pk[k], size = 1, prob = nu[k])
-
-      # Introducing at least one true predictor
-      if (sum(theta[k, ids]) == 0) {
-        theta[k, sample(ids, size = 1)] <- 1
-      }
-    } else {
-      theta[k, ] <- stats::rbinom(sum(pk), size = 1, prob = nu[k])
-      theta[k, k] <- 1
-    }
-  }
-
-  return(t(theta))
-}
-
-
 #' Making positive definite matrix
 #'
 #' Determines the diagonal entries of a symmetric matrix to make it is positive
@@ -486,110 +237,229 @@ Contrast <- function(mat, digits = 3) {
 }
 
 
-#' Maximising matrix contrast
+#' Within-group probabilities for communities
 #'
-#' Computes the contrast of the correlation matrix obtained by adding u to the
-#' diagonal of the precision matrix. This function is used to find the value of
-#' u that maximises the contrast when constructing a diagonally dominant
-#' precision matrix.
+#' Computes the smallest within-group probabilities that can be used to simulate
+#' a graph where communities can be expected for given probabilities of
+#' between-group probabilities and group sizes.
 #'
-#' @param u constant u added to the diagonal of the precision matrix.
-#' @param omega positive semi-definite precision matrix.
-#' @param digits number of digits to use in the definition of the contrast.
+#' @inheritParams SimulateGraphical
+#' @param nu_mat matrix of probabilities of having an edge between nodes
+#'   belonging to a given pair of node groups defined in \code{pk}. Only
+#'   off-diagonal entries are used.
 #'
-#' @return A single number, the contrast of the generated precision matrix.
+#' @details The vector of within-group probabilities is the smallest one that
+#'   can be used to generate an expected total within degree \eqn{D^w_k}
+#'   strictly higher than the expected total between degree \eqn{D^b_k} for all
+#'   communities \eqn{k} (see \code{\link{ExpectedCommunities}}). Namely, using
+#'   the suggested within-group probabilities would give expected \eqn{D^w_k =
+#'   D^b_k + 1}.
 #'
-#' @keywords internal
-MaxContrast <- function(u, omega, digits = 3) {
-  diag(omega) <- diag(omega) + u
-  return(Contrast(stats::cov2cor(solve(omega)), digits = digits))
-}
-
-
-#' Tuning function (covariance)
+#' @return A vector of within-group probabilities.
 #'
-#' Computes the difference in absolute value between the desired and observed
-#' proportion of explained variance from the first Principal Component of a
-#' Principal Component Analysis applied on the covariance matrix. The precision
-#' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a covariance matrix with desired proportion of explained
-#' variance.
+#' @seealso \code{\link{ExpectedCommunities}}, \code{\link{SimulateAdjacency}},
+#'   \code{\link{SimulateGraphical}}
 #'
-#' @inheritParams MaxContrast
-#' @param ev_xx desired proportion of explained variance. If \code{ev_xx=NULL}, the
-#'   obtained proportion of explained variance is returned.
-#' @param lambda eigenvalues of the positive semidefinite precision matrix.
+#' @examples
+#' # Simulation parameters
+#' pk <- rep(20, 4)
+#' nu_between <- 0.1
 #'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
+#' # Estimating smallest nu_within
+#' nu_within <- MinWithinProba(pk = pk, nu_between = nu_between)
 #'
-#' @keywords internal
-TuneExplainedVarianceCov <- function(u, ev_xx = NULL, lambda) {
-  lambda <- lambda + u
-  lambda_inv <- 1 / lambda
-  tmp_ev <- max(lambda_inv) / sum(lambda_inv)
-  if (is.null(ev_xx)) {
-    out <- tmp_ev
+#' # Expected metrics
+#' ExpectedCommunities(
+#'   pk = pk,
+#'   nu_within = max(nu_within),
+#'   nu_between = nu_between
+#' )
+#'
+#' @export
+MinWithinProba <- function(pk, nu_between = 0, nu_mat = NULL) {
+  if (is.null(nu_mat)) {
+    nu_mat <- diag(length(pk))
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
+    diag(nu_mat) <- NA
   } else {
-    out <- abs(tmp_ev - ev_xx)
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
   }
-  return(out)
+
+  nu_within_min <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    nu_within_min[k] <- 1 / (pk[k] - 1) * (sum(nu_mat[k, -k] * pk[-k]) + 1 / pk[k])
+  }
+
+  return(nu_within_min)
 }
 
 
-#' Tuning function (correlation)
+#' Expected community structure
 #'
-#' Computes the difference in absolute value between the desired and observed
-#' proportion of explained variance from the first Principal Component of a
-#' Principal Component Analysis applied on the correlation matrix. The precision
-#' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a correlation matrix with desired proportion of explained
-#' variance.
+#' Computes expected metrics related to the community structure of a graph
+#' simulated with given parameters.
 #'
-#' @inheritParams TuneExplainedVarianceCov
-#' @param omega positive semidefinite precision matrix.
+#' @inheritParams SimulateGraphical
 #'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
+#' @details Given a group of nodes, the within degree \eqn{d^w_i} of node
+#'   \eqn{i} is defined as the number of nodes from the same group node \eqn{i}
+#'   is connected to. The between degree \eqn{d^b_i} is the number of nodes from
+#'   other groups node \eqn{i} is connected to. A weak community in the network
+#'   is defined as a group of nodes for which the total within degree (sum of
+#'   the \eqn{d^w_i} for all nodes in the community) is stricly greater than the
+#'   total between degree (sum of \eqn{d^b_i} for all nodes in the community).
+#'   For more details, see
+#'   \href{http://networksciencebook.com/chapter/9#basics}{Network Science} by
+#'   Albert-Laszlo Barabasi.
 #'
-#' @keywords internal
-TuneExplainedVarianceCor <- function(u, ev_xx = NULL, omega) {
-  diag(omega) <- diag(omega) + u
-  mycor <- stats::cov2cor(solve(omega))
-  tmp_ev <- norm(mycor, type = "2") / ncol(mycor)
-  if (is.null(ev_xx)) {
-    out <- tmp_ev
+#'   The expected total within and between degrees for the groups defined in
+#'   \code{pk} in a network simulated using \code{SimulateAdjacency} can be
+#'   computed given the group sizes (stored in \code{pk}) and probabilities of
+#'   having an edge between nodes from a given group pair (defined by
+#'   \code{nu_within} and \code{nu_between} or by \code{nu_mat}). The expected
+#'   presence of weak communities can be inferred from these quantities.
+#'
+#'   The expected modularity, measuring the difference between observed and
+#'   expected number of within-community edges, is also returned. For more
+#'   details on this metric, see \code{\link[igraph]{modularity}}.
+#'
+#' @return A list with: \item{total_within_degree_c}{total within degree by node
+#'   group, i.e. sum of expected within degree over all nodes in a given group.}
+#'   \item{total_between_degree}{total between degree by node group, i.e. sum of
+#'   expected between degree over all nodes in a given group.}
+#'   \item{weak_community}{binary indicator for a given node group to be an
+#'   expected weak community.} \item{total_number_edges_c}{matrix of expected
+#'   number of edges between nodes from a given node pair.}
+#'   \item{modularity}{expected modularity (see
+#'   \code{\link[igraph]{modularity}}).}
+#'
+#' @seealso \code{\link{SimulateGraphical}}, \code{\link{SimulateAdjacency}},
+#'   \code{\link{MinWithinProba}}
+#'
+#' @examples
+#' # Simulation parameters
+#' pk <- rep(20, 4)
+#' nu_within <- 0.8
+#' nu_between <- 0.1
+#'
+#' # Expected metrics
+#' expected <- ExpectedCommunities(
+#'   pk = pk,
+#'   nu_within = nu_within,
+#'   nu_between = nu_between
+#' )
+#'
+#' # Example of simulated graph
+#' set.seed(1)
+#' theta <- SimulateAdjacency(
+#'   pk = pk,
+#'   nu_within = nu_within,
+#'   nu_between = nu_between
+#' )
+#'
+#' # Comparing observed and expected numbers of edges
+#' bigblocks <- BlockMatrix(pk)
+#' BlockStructure(pk)
+#' sum(theta[which(bigblocks == 2)]) / 2
+#' expected$total_number_edges_c[1, 2]
+#'
+#' # Comparing observed and expected modularity
+#' igraph::modularity(igraph::graph_from_adjacency_matrix(theta, mode = "undirected"),
+#'   membership = rep.int(1:length(pk), times = pk)
+#' )
+#' expected$modularity
+#'
+#' @export
+ExpectedCommunities <- function(pk, nu_within = 0.1, nu_between = 0, nu_mat = NULL) {
+  if (is.null(nu_mat)) {
+    nu_mat <- diag(length(pk))
+    nu_mat <- nu_mat * nu_within
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
   } else {
-    out <- abs(tmp_ev - ev_xx)
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
   }
-  return(out)
+
+  # Calculating expected sums of within and between degrees for community k
+  d_within <- d_between <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    d_within[k] <- pk[k] * nu_mat[k, k] * (pk[k] - 1) # sum of within degrees in community k
+    d_between[k] <- pk[k] * sum(nu_mat[k, -k] * pk[-k]) # sum of between degrees in community k
+  }
+  weak_community <- ifelse(d_within > d_between, yes = 1, no = 0)
+
+  # Calculating expected number of edges within and between communities
+  mystructure <- BlockStructure(pk)
+  emat <- matrix(NA, nrow = nrow(mystructure), ncol = ncol(mystructure))
+  for (k in unique(mystructure[upper.tri(mystructure, diag = TRUE)])) {
+    if (k %in% diag(mystructure)) {
+      i <- which(diag(mystructure) == k)
+      emat[which(mystructure == k)] <- nu_mat[i, i] * pk[i] * (pk[i] - 1) / 2
+    } else {
+      tmpids <- which(mystructure == k, arr.ind = TRUE)
+      i <- tmpids[1]
+      j <- tmpids[2]
+      emat[which(mystructure == k)] <- nu_mat[i, j] * pk[i] * pk[j]
+    }
+  }
+  L <- sum(emat[upper.tri(emat, diag = TRUE)]) # total number of edges
+
+  # Calculating community modularity
+  M_C <- rep(NA, length(pk))
+  for (k in 1:length(pk)) {
+    M_C[k] <- emat[k, k] / L - ((d_within[k] + d_between[k]) / (2 * L))^2 # modularity of community k
+  }
+
+  # Calculating overall modularity
+  M <- sum(M_C)
+
+  return(list(
+    total_within_degree_c = d_within,
+    total_between_degree_c = d_between,
+    weak_community = weak_community,
+    total_number_edges_c = emat,
+    modularity = M
+  ))
 }
 
 
-#' Tuning function (regression)
+#' Layered Directed Acyclic Graph
 #'
-#' Computes the absolute difference between the smallest eigenvalue and
-#' requested one (parameter \code{tol}) for a precision matrix with predictors
-#' and outcomes.
+#' Returns the adjacency matrix of a layered Directed Acyclic Graph. In this
+#' graph, arrows go from all members of a layer to all members of the following
+#' layers. There are no arrows between members of the same layer.
 #'
-#' @param ev_xz proportion of explained variance.
-#' @param omega precision matrix.
-#' @param tol requested smallest eigenvalue after transformation of the input
-#'   precision matrix.
-#' @param q number of outcome variables.
-#' @param p number of predictor variables.
+#' @param layers list of vectors. Each vector in the list corresponds to a
+#'   layer. There are as many layers as items in the list.
 #'
-#' @return The absolute difference between the smallest eigenvalue of the
-#'   transformed precision matrix and requested value \code{tol}.
+#' @return The adjacency matrix of the layered Directed Acyclic Graph.
 #'
-#' @keywords internal
-TuneExplainedVarianceReg <- function(ev_xz, omega, tol = 0.1, q, p) {
-  ev_xz <- rep(ev_xz, q)
-  for (j in 1:q) {
-    pred_ids <- seq(q + 1, q + p)
-    omega[j, j] <- omega[j, pred_ids, drop = FALSE] %*% solve(omega[pred_ids, pred_ids]) %*% t(omega[j, pred_ids, drop = FALSE]) * 1 / ev_xz[j]
-  }
-  return(abs(min(eigen(omega, only.values = TRUE)$values) - tol))
+#' @seealso \code{\link{SimulateSCM}}
+#'
+#' @examples
+#' # Example with 3 layers
+#' layers <- list(
+#'   c("x1", "x2", "x3"),
+#'   c("x4", "x5"),
+#'   c("x6", "x7", "x8")
+#' )
+#' dag <- LayeredDAG(layers)
+#' plot(dag)
+#'
+#' @export
+LayeredDAG <- function(layers) {
+  # Extracting the number of members per layer
+  pk <- sapply(layers, length)
+
+  # Creating the adjacency matrix
+  adjacency <- SimulateAdjacency(pk = pk, nu_within = 0, nu_between = 1)
+  adjacency[lower.tri(adjacency)] <- 0
+  colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
+
+  return(adjacency)
 }

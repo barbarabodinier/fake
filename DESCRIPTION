@@ -1,6 +1,7 @@
 Package: fake
 Title: Flexible Data Simulation Using the Multivariate Normal Distribution
-Version: 1.0.0
+Version: 1.0.0.9000
+Date: 2022-08-09
 Author: Barbara Bodinier [aut, cre]
 Maintainer: Barbara Bodinier <b.bodinier@imperial.ac.uk>
 Description: Simulation of data from Gaussian Graphical Models (B Bodinier, S Filippi, TH Nost, J Chiquet, M Chadeau-Hyam (2021) <arXiv:2106.02521>). By controlling the conditional independence structure between the variables, these multivariate simulation tools can be used to evaluate the performance of regression, dimensionality reduction or graphical models.

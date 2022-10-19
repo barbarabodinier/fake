@@ -12,6 +12,7 @@ SimulateGraphical(
   topology = "random",
   nu_within = 0.1,
   nu_between = NULL,
+  nu_mat = NULL,
   v_within = c(0.5, 1),
   v_between = c(0.1, 0.2),
   v_sign = c(-1, 1),
@@ -33,8 +34,7 @@ SimulateGraphical(
 The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 groups, the simulated (partial) correlation matrix has a block structure,
 where blocks arise from the integration of the \code{length(pk)} groups.
-This argument is only used if \code{sum(pk)} is equal to the number of
-rows/columns in \code{theta} is not provided.}
+This argument is only used if \code{theta} is not provided.}
 
 \item{theta}{optional binary and symmetric adjacency matrix encoding the
 conditional independence structure.}
@@ -52,17 +52,22 @@ entries are all equal to zero. This function is only applied if
 argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
 "random", "hub", "cluster", "band" and "scale-free".}
 
-\item{nu_within}{expected density (number of edges over the number of node
-pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
+\item{nu_within}{probability of having an edge between two nodes belonging to
+the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
 this argument is only used for \code{topology="random"} or
 \code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}).}
+\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
+provided.}
 
-\item{nu_between}{expected density (number of edges over the number of node
-pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
-By default, the same density is used for within and between blocks
-(\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.}
+\item{nu_between}{probability of having an edge between two nodes belonging
+to different groups, as defined in \code{pk}. By default, the same density
+is used for within and between blocks (\code{nu_within}=\code{nu_between}).
+Only used if \code{length(pk)>1}. Only used if \code{nu_mat} is not
+provided.}
+
+\item{nu_mat}{matrix of probabilities of having an edge between nodes
+belonging to a given pair of node groups defined in \code{pk}.}
 
 \item{v_within}{vector defining the (range of) nonzero entries in the
 diagonal blocks of the precision matrix. These values must be between -1
@@ -84,9 +89,9 @@ negative partial correlations.}
 \item{continuous}{logical indicating whether to sample precision values from
 a uniform distribution between the minimum and maximum values in
 \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=TRUE}) or from proposed values in \code{v_within}
-(diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(\code{continuous=FALSE}).}
+(if \code{continuous=TRUE}) or from proposed values in \code{v_within}
+(diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
+\code{continuous=FALSE}).}
 
 \item{pd_strategy}{method to ensure that the generated precision matrix is
 positive definite (and hence can be a covariance matrix). If
@@ -116,8 +121,9 @@ explore for constant u.}
 \item{tol}{accuracy for the search of parameter u as defined in
 \code{\link[stats]{optimise}}.}
 
-\item{scale}{logical indicating if the simulated data should be standardised
-using \code{\link[base]{scale}}.}
+\item{scale}{logical indicating if the true mean is zero and true variance is
+one for all simulated variables. The observed mean and variance may be
+slightly off by chance.}
 
 \item{output_matrices}{logical indicating if the true precision and (partial)
 correlation matrices should be included in the output.}
@@ -128,10 +134,10 @@ provided in \code{implementation}.}
 \value{
 A list with: \item{data}{simulated data with \code{n} observation and
   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
-  graph} \item{omega}{simulated (true) precision matrix. Only returned if
+  graph.} \item{omega}{simulated (true) precision matrix. Only returned if
   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
-  \item{sigma}{ simulated (true) covariance matrix. Only returned if
+  \item{sigma}{simulated (true) covariance matrix. Only returned if
   \code{output_matrices=TRUE}.} \item{u}{value of the constant u used for the
   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
 }
@@ -245,7 +251,9 @@ Heatmap(mycor,
 
 Other simulation functions: 
 \code{\link{SimulateAdjacency}()},
+\code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
-\code{\link{SimulateRegression}()}
+\code{\link{SimulateRegression}()},
+\code{\link{SimulateSCM}()}
 }
 \concept{simulation functions}

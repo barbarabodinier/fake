@@ -20,6 +20,7 @@
 #' @param legend logical indicating if the colour bar should be included.
 #' @param legend_length length of the colour bar.
 #' @param legend_range range of the colour bar.
+#' @param cex.legend font size for legend.
 #' @param ... additional arguments passed to \code{\link[base]{formatC}} for
 #'   number formatting. Only used if \code{text=TRUE}.
 #'
@@ -31,12 +32,13 @@
 #'
 #' # Data simulation
 #' set.seed(1)
-#' mat <- matrix(rnorm(200), ncol = 20)
+#' mat <- matrix(rnorm(100), ncol = 10)
 #' rownames(mat) <- paste0("r", 1:nrow(mat))
 #' colnames(mat) <- paste0("c", 1:ncol(mat))
 #'
 #' # Generating heatmaps
 #' Heatmap(mat = mat)
+#' Heatmap(mat = mat, text = TRUE, format = "f", digits = 2)
 #' Heatmap(
 #'   mat = mat,
 #'   col = c("lightgrey", "blue", "black"),
@@ -49,7 +51,7 @@ Heatmap <- function(mat, col = c("ivory", "navajowhite", "tomato", "darkred"),
                     resolution = 10000, bty = "o",
                     axes = TRUE, cex.axis = 1, xlas = 2, ylas = 2,
                     text = FALSE, cex = 1,
-                    legend = TRUE, legend_length = NULL, legend_range = NULL, ...) {
+                    legend = TRUE, legend_length = NULL, legend_range = NULL, cex.legend = 1, ...) {
   oldpar <- graphics::par("xpd", "xaxs", "yaxs", no.readonly = TRUE)
   on.exit(graphics::par(oldpar))
 
@@ -146,7 +148,7 @@ Heatmap <- function(mat, col = c("ivory", "navajowhite", "tomato", "darkred"),
       if (l %in% mylegend_ids) {
         graphics::text(
           x = xpos * legend_width_factor, y = ypos - legend_length + legend_length * (l + 0.5) / length(col),
-          labels = paste0("- ", mylegend_values[which(mylegend_ids == l)]), adj = c(0, 0.5)
+          labels = paste0("- ", mylegend_values[which(mylegend_ids == l)]), adj = c(0, 0.5), cex = cex.legend
         )
       }
     }

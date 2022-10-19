@@ -7,8 +7,7 @@
 #'   The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
 #'   groups, the simulated (partial) correlation matrix has a block structure,
 #'   where blocks arise from the integration of the \code{length(pk)} groups.
-#'   This argument is only used if \code{sum(pk)} is equal to the number of
-#'   rows/columns in \code{theta} is not provided.
+#'   This argument is only used if \code{theta} is not provided.
 #' @param theta optional binary and symmetric adjacency matrix encoding the
 #'   conditional independence structure.
 #' @param implementation function for simulation of the graph. By default,
@@ -22,16 +21,20 @@
 #'   \code{implementation=HugeAdjacency}, possible values are listed for the
 #'   argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
 #'   "random", "hub", "cluster", "band" and "scale-free".
-#' @param nu_within expected density (number of edges over the number of node
-#'   pairs) of within-group blocks in the graph. If \code{length(pk)=1}, this is
+#' @param nu_within probability of having an edge between two nodes belonging to
+#'   the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 #'   the expected density of the graph. If \code{implementation=HugeAdjacency},
 #'   this argument is only used for \code{topology="random"} or
 #'   \code{topology="cluster"} (see argument \code{prob} in
-#'   \code{\link[huge]{huge.generator}}).
-#' @param nu_between expected density (number of edges over the number of node
-#'   pairs) of between-group blocks in the graph. Similar to \code{nu_within}.
-#'   By default, the same density is used for within and between blocks
-#'   (\code{nu_within}=\code{nu_between}). Only used if \code{length(pk)>1}.
+#'   \code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
+#'   provided.
+#' @param nu_between probability of having an edge between two nodes belonging
+#'   to different groups, as defined in \code{pk}. By default, the same density
+#'   is used for within and between blocks (\code{nu_within}=\code{nu_between}).
+#'   Only used if \code{length(pk)>1}. Only used if \code{nu_mat} is not
+#'   provided.
+#' @param nu_mat matrix of probabilities of having an edge between nodes
+#'   belonging to a given pair of node groups defined in \code{pk}.
 #' @param output_matrices logical indicating if the true precision and (partial)
 #'   correlation matrices should be included in the output.
 #' @param v_within vector defining the (range of) nonzero entries in the
@@ -51,9 +54,9 @@
 #' @param continuous logical indicating whether to sample precision values from
 #'   a uniform distribution between the minimum and maximum values in
 #'   \code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=TRUE}) or from proposed values in \code{v_within}
-#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-#'   (\code{continuous=FALSE}).
+#'   (if \code{continuous=TRUE}) or from proposed values in \code{v_within}
+#'   (diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
+#'   \code{continuous=FALSE}).
 #' @param pd_strategy method to ensure that the generated precision matrix is
 #'   positive definite (and hence can be a covariance matrix). If
 #'   \code{pd_strategy="diagonally_dominant"}, the precision matrix is made
@@ -77,8 +80,9 @@
 #'   explore for constant u.
 #' @param tol accuracy for the search of parameter u as defined in
 #'   \code{\link[stats]{optimise}}.
-#' @param scale logical indicating if the simulated data should be standardised
-#'   using \code{\link[base]{scale}}.
+#' @param scale logical indicating if the true mean is zero and true variance is
+#'   one for all simulated variables. The observed mean and variance may be
+#'   slightly off by chance.
 #' @param ... additional arguments passed to the graph simulation function
 #'   provided in \code{implementation}.
 #'
@@ -89,10 +93,10 @@
 #'
 #' @return A list with: \item{data}{simulated data with \code{n} observation and
 #'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
-#'   graph} \item{omega}{simulated (true) precision matrix. Only returned if
+#'   graph.} \item{omega}{simulated (true) precision matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
 #'   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
-#'   \item{sigma}{ simulated (true) covariance matrix. Only returned if
+#'   \item{sigma}{simulated (true) covariance matrix. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{u}{value of the constant u used for the
 #'   simulation of \code{omega}. Only returned if \code{output_matrices=TRUE}.}
 #'
@@ -197,7 +201,7 @@
 #' @export
 SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
                               implementation = HugeAdjacency, topology = "random",
-                              nu_within = 0.1, nu_between = NULL,
+                              nu_within = 0.1, nu_between = NULL, nu_mat = NULL,
                               v_within = c(0.5, 1), v_between = c(0.1, 0.2),
                               v_sign = c(-1, 1), continuous = TRUE,
                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
@@ -221,7 +225,7 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
     theta <- SimulateAdjacency(
       pk = pk,
       implementation = implementation, topology = topology,
-      nu_within = nu_within, nu_between = nu_between, ...
+      nu_within = nu_within, nu_between = nu_between, nu_mat = nu_mat, ...
     )
   }
 
@@ -453,11 +457,11 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #' @param eta_set vector defining the range of values from which \code{eta} is
 #'   sampled. This argument is only used if \code{eta} is not provided.
 #' @param ev_xx expected proportion of explained variance by the first Principal
-#'   Component (PC1) of a Principal Component Analysis. This is the largest
-#'   eigenvalue of the correlation (if \code{scale_ev=TRUE}) or covariance (if
-#'   \code{scale_ev=FALSE}) matrix divided by the sum of eigenvalues. If
-#'   \code{ev_xx=NULL} (the default), the constant u is chosen by maximising the
-#'   contrast of the correlation matrix.
+#'   Component (PC1) of a Principal Component Analysis applied on the
+#'   predictors. This is the largest eigenvalue of the correlation (if
+#'   \code{scale_ev=TRUE}) or covariance (if \code{scale_ev=FALSE}) matrix
+#'   divided by the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the
+#'   constant u is chosen by maximising the contrast of the correlation matrix.
 #'
 #' @return A list with: \item{xdata}{simulated predictor data.}
 #'   \item{ydata}{simulated outcome data.} \item{proba}{simulated probability of
@@ -800,6 +804,454 @@ SimulateRegression <- function(n = 100, pk = 10, N = 3,
 }
 
 
+#' Simulation of data with underlying clusters
+#'
+#' Simulates mixture multivariate Normal data with clusters of items (rows)
+#' sharing similar profiles along (a subset of) attributes (columns).
+#'
+#' @inheritParams SimulateGraphical
+#' @param n vector of the number of items per cluster in the simulated data. The
+#'   total number of items is \code{sum(n)}.
+#' @param pk vector of the number of attributes in the simulated data.
+#' @param adjacency optional binary and symmetric adjacency matrix encoding the
+#'   conditional independence structure between attributes.
+#' @param theta_xc optional binary matrix encoding which attributes (columns)
+#'   contribute to the clustering structure between which clusters (rows). If
+#'   \code{theta_xc=NULL}, variables contributing to the clustering are sampled
+#'   with probability \code{nu_xc}.
+#' @param nu_xc expected proportion of variables contributing to the clustering
+#'   over the total number of variables. Only used if \code{theta_xc} is not
+#'   provided.
+#' @param ev_xc vector of marginal expected proportion of explained variance by
+#'   each attribute contributing to the clustering.
+#' @param ev_xx expected proportion of explained variance by the first Principal
+#'   Component (PC1) of a Principal Component Analysis applied on the
+#'   predictors. This is the largest eigenvalue of the correlation (if
+#'   \code{scale=TRUE}) or covariance (if \code{scale=FALSE}) matrix divided by
+#'   the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the constant u
+#'   is chosen by maximising the contrast of the correlation matrix.
+#'
+#' @seealso \code{\link{MakePositiveDefinite}}
+#' @family simulation functions
+#'
+#' @return A list with: \item{data}{simulated data with \code{sum(n)}
+#'   observation and \code{sum(pk)} variables} \item{theta}{simulated (true)
+#'   cluster membership.} \item{adjacency}{adjacency matrix of the graph
+#'   encoding the conditional independence structure between variables.}
+#'   \item{theta_xc}{binary vector encoding variables contributing to the
+#'   clustering structure.} \item{ev}{vector of marginal expected proportions of
+#'   explained variance for each variable.} \item{omega}{simulated (true)
+#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
+#'   matrix. Only returned if \code{output_matrices=TRUE}.} \item{u}{value of
+#'   the constant u used for the simulation of \code{omega}. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{mu_mixture}{simulated (true)
+#'   cluster-specific means. Only returned if \code{output_matrices=TRUE}.}
+#'
+#' @examples
+#'
+#' ## Example with 3 clusters
+#'
+#' # Data simulation
+#' set.seed(1)
+#' simul <- SimulateClustering(
+#'   n = c(10, 30, 15),
+#'   nu_xc = 1,
+#'   ev_xc = 0.5
+#' )
+#' print(simul)
+#' plot(simul)
+#'
+#' # Checking the proportion of explained variance
+#' x <- simul$data[, 1]
+#' z <- as.factor(simul$theta)
+#' summary(lm(x ~ z)) # R-squared
+#'
+#'
+#' ## Example with 2 variables contributing to clustering
+#'
+#' # Data simulation
+#' set.seed(1)
+#' simul <- SimulateClustering(
+#'   n = c(20, 10, 15), pk = 10,
+#'   theta_xc = c(1, 1, rep(0, 8)),
+#'   ev_xc = 0.8
+#' )
+#' print(simul)
+#' plot(simul)
+#'
+#' # Visualisation of the data
+#' par(mar = c(5, 5, 5, 5))
+#' Heatmap(
+#'   mat = simul$data,
+#'   colours = c("navy", "white", "red")
+#' )
+#' simul$ev # marginal proportions of explained variance
+#'
+#' # Visualisation along contributing variables
+#' plot(simul$data[, 1:2], col = simul$theta)
+#'
+#'
+#' ## Example with different levels of separation
+#'
+#' # Data simulation
+#' set.seed(1)
+#' simul <- SimulateClustering(
+#'   n = c(20, 10, 15), pk = 10,
+#'   theta_xc = c(1, 1, rep(0, 8)),
+#'   ev_xc = c(0.99, 0.5, rep(0, 8))
+#' )
+#' simul$ev
+#'
+#' # Visualisation along contributing variables
+#' plot(simul$data[, 1:2], col = simul$theta)
+#'
+#'
+#' ## Example with correlated contributors
+#'
+#' # Data simulation
+#' pk <- 10
+#' adjacency <- matrix(0, pk, pk)
+#' adjacency[1, 2] <- adjacency[2, 1] <- 1
+#' set.seed(1)
+#' simul <- SimulateClustering(
+#'   n = c(200, 100, 150), pk = pk,
+#'   theta_xc = c(1, 1, rep(0, 8)),
+#'   ev_xc = c(0.9, 0.8, rep(0, 8)),
+#'   adjacency = adjacency,
+#'   pd_strategy = "min_eigenvalue",
+#'   v_within = 0.6, v_sign = -1
+#' )
+#'
+#' # Visualisation along contributing variables
+#' plot(simul$data[, 1:2], col = simul$theta)
+#'
+#' # Checking marginal proportions of explained variance
+#' mymodel <- lm(simul$data[, 1] ~ as.factor(simul$theta))
+#' summary(mymodel)$r.squared
+#' mymodel <- lm(simul$data[, 2] ~ as.factor(simul$theta))
+#' summary(mymodel)$r.squared
+#'
+#' @export
+SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
+                               theta_xc = NULL, nu_xc = 0.1, ev_xc = NULL,
+                               implementation = HugeAdjacency, topology = "random",
+                               nu_within = 0, nu_between = NULL, nu_mat = NULL,
+                               v_within = c(0.5, 1), v_between = c(0, 0.1),
+                               v_sign = c(-1, 1), continuous = TRUE,
+                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
+                               u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25,
+                               scale = TRUE,
+                               output_matrices = FALSE) {
+  # Checking the inputs
+  if (!is.null(theta_xc)) {
+    if (inherits(theta_xc, "numeric")) {
+      theta_xc <- rbind(theta_xc)
+    }
+    if (nrow(theta_xc) == 1) {
+      tmp_theta_xc <- theta_xc
+      theta_xc <- NULL
+      for (i in 1:length(n)) {
+        theta_xc <- rbind(theta_xc, tmp_theta_xc)
+      }
+    }
+    if (is.null(pk)) {
+      pk <- ncol(theta_xc)
+    } else {
+      if (sum(pk) != ncol(theta_xc)) {
+        # warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('theta_xc').")
+        pk <- ncol(theta_xc)
+      }
+    }
+  }
+  if (!is.null(adjacency)) {
+    if (ncol(adjacency) != nrow(adjacency)) {
+      stop("Invalid input for argument 'adjacency'. It must be a square matrix (same number of rows and columns).")
+    }
+    if (is.null(pk)) {
+      pk <- ncol(theta_xc)
+    } else {
+      if (sum(pk) != ncol(adjacency)) {
+        warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('adjacency').")
+        pk <- ncol(adjacency)
+      }
+    }
+  }
+
+  # Using multi-block simulator with unconnected blocks
+  out <- SimulateGraphical(
+    n = sum(n), pk = pk, theta = adjacency,
+    implementation = implementation,
+    topology = topology,
+    nu_within = nu_within,
+    nu_between = nu_between,
+    nu_mat = nu_mat,
+    v_within = v_within,
+    v_between = v_between,
+    v_sign = v_sign,
+    continuous = continuous,
+    pd_strategy = pd_strategy,
+    ev_xx = ev_xx,
+    scale_ev = scale_ev,
+    u_list = u_list,
+    tol = tol,
+    scale = scale,
+    output_matrices = TRUE
+  )
+
+  # Defining number of clusters
+  nc <- length(n)
+
+  # Defining variables contributing to the clustering
+  if (is.null(theta_xc)) {
+    theta_xc <- matrix(rep(
+      SamplePredictors(pk = sum(pk), q = 1, nu = nu_xc, orthogonal = TRUE)[, 1],
+      length(n)
+    ),
+    nrow = length(n), byrow = TRUE
+    )
+  }
+  rownames(theta_xc) <- paste0("cluster", 1:nrow(theta_xc))
+
+  # Simulating marginal proportions of explained variance
+  if (is.null(ev_xc)) {
+    ev_xc <- stats::runif(n = sum(pk))
+  } else {
+    if (length(ev_xc) == 1) {
+      ev_xc <- rep(ev_xc, sum(pk))
+    }
+  }
+
+  # Re-naming the outputs
+  out$adjacency <- out$theta
+
+  # Definition of membership
+  theta <- NULL
+  for (i in 1:length(n)) {
+    theta <- c(theta, rep(i, each = n[i]))
+  }
+  names(theta) <- rownames(out$data)
+  out$theta <- theta
+
+  # Simulating the cluster-specific means
+  mu_mixture <- matrix(NA, nrow = length(unique(theta)), ncol = sum(pk))
+  if (length(n) > 1) {
+    mu_mat <- matrix(NA, nrow = sum(n), ncol = sum(pk))
+    for (k in 1:ncol(mu_mat)) {
+      # Sampling initial values for cluster-specific means
+      mu <- stats::rnorm(n = nc, mean = 0, sd = 1)
+      mu <- mu * theta_xc[, k]
+
+      # Attributing cluster-specific means to observations
+      for (i in 1:nrow(mu_mat)) {
+        mu_mat[i, k] <- mu[theta[i]]
+      }
+
+      # # Defining variance to reach expected proportion of e.v.
+      # var_mu <- ev_xc[k] * 1 / (1 - ev_xc[k])
+      #
+      # # Scaling to ensure mean of zero and defined variance
+      # mu_mat[, k] <- scale(mu_mat[, k])
+      # mu_mat[, k] <- mu_mat[, k] * sqrt(var_mu)
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-mean(mu_mat[,k]))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum((mu_mat[, k]-mean(mu_mat[, k]))^2))
+      # # Equivalent to: sqrt(var_mu)*(mu_mat[, k]-1/nrow(mu_mat)*sum(table(theta)*mu))/sqrt(1/(nrow(mu_mat)-1)*sum(table(theta)*(mu-1/nrow(mu_mat)*sum(table(theta)*mu))^2))
+      #
+      # # Storing cluster-specific means
+      # mu_mixture[, k] <- mu_mat[!duplicated(theta), k]
+      #
+      # # Adding cluster-specific means
+      # out$data[, k] <- out$data[, k] + mu_mat[, k]
+
+      # Ensuring that the grouping structure is going to represent desired proportion of variance
+      if (any(theta_xc[, k] != 0)) {
+        mu_mat[, k] <- scale(mu_mat[, k]) * sqrt(ev_xc[k]) * sqrt(diag(out$sigma)[k])
+        out$data[, k] <- out$data[, k] * sqrt(1 - ev_xc[k])
+      }
+
+      # Adding cluster-specific means
+      out$data[, k] <- out$data[, k] + mu_mat[, k]
+
+      # Storing cluster-specific means
+      mu_mixture[, k] <- mu_mat[!duplicated(theta), k]
+    }
+    mu_mat[is.na(mu_mat)] <- 0
+  }
+
+  # Updating the within-cluster covariance matrix
+  out$sigma <- out$sigma * sqrt(cbind(1 - ev_xc) %*% rbind(1 - ev_xc))
+
+  # Definition of contributing variables
+  colnames(theta_xc) <- colnames(out$data)
+  out$theta_xc <- theta_xc
+  out$ev <- ev_xc * ifelse(apply(theta_xc, 2, sum) != 0, yes = 1, no = 0)
+
+  # Returning true cluster-specific means
+  if (output_matrices) {
+    out$mu_mixture <- mu_mixture
+  }
+
+  # Defining the class
+  class(out) <- "simulation_clustering"
+
+  return(out)
+}
+
+
+#' Data simulation for Structural Causal Modelling
+#'
+#' Simulates data from a Structural Causal Model (SCM). To ensure that the
+#' generated SCM is identifiable, the nodes are organised by layers, with no
+#' causal effects within layers.
+#'
+#' @inheritParams SimulateGraphical
+#'
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
+#'   \code{\link{Contrast}}
+#' @param nu_between probability of having an edge between two nodes belonging
+#'   to different layers, as defined in \code{pk}. If \code{length(pk)=1}, this
+#'   is the expected density of the graph.
+#' @param v_between vector defining the (range of) nonzero path coefficients. If
+#'   \code{continuous=FALSE}, \code{v_between} is the set of possible values. If
+#'   \code{continuous=TRUE}, \code{v_between} is the range of possible values.
+#' @param v_sign vector of possible signs for path coefficients. Possible inputs
+#'   are: \code{1} for positive coefficients, \code{-1} for negative
+#'   coefficients, or \code{c(-1, 1)} for both positive and negative
+#'   coefficients.
+#' @param continuous logical indicating whether to sample path coefficients from
+#'   a uniform distribution between the minimum and maximum values in
+#'   \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
+#'   \code{v_between} (if \code{continuous=FALSE}).
+#' @param residual_var vector of residual variances. The length of the vector
+#'   should be equal to \code{sum(pk)} or \code{ncol(theta)}. The same value is
+#'   used for all variables if a single value is provided (the default).
+#' @param output_matrices logical indicating if the true path coefficients,
+#'   residual variances, and precision and (partial) correlation matrices should
+#'   be included in the output.
+#'
+#' @family simulation functions
+#'
+#' @return A list with: \item{data}{simulated data with \code{n} observation and
+#'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
+#'   Directed Acyclic Graph encoding causal relationships.}
+#'   \item{path_coef}{simulated (true) matrix of path coefficients. Only
+#'   returned if \code{output_matrices=TRUE}.} \item{omega}{simulated (true)
+#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
+#'   matrix. Only returned if \code{output_matrices=TRUE}.}
+#'
+#' @examples
+#' # Simulation of a layered SCM
+#' set.seed(1)
+#' pk <- c(3, 5, 4)
+#' simul <- SimulateSCM(n = 100, pk = pk)
+#' print(simul)
+#' summary(simul)
+#'
+#' # Visualisation of the layers
+#' if (requireNamespace("igraph", quietly = TRUE)) {
+#'   mygraph <- plot(simul)
+#'   igraph::plot.igraph(mygraph,
+#'     layout = igraph::layout_with_sugiyama(mygraph,
+#'       layers = rep.int(1:length(pk), times = pk)
+#'     )
+#'   )
+#' }
+#' @export
+SimulateSCM <- function(n = 100,
+                        pk = c(5, 5, 5),
+                        theta = NULL,
+                        nu_between = 0.5,
+                        v_between = c(0.5, 1),
+                        v_sign = c(-1, 1),
+                        continuous = TRUE,
+                        residual_var = 1,
+                        scale = TRUE,
+                        output_matrices = FALSE) {
+  # Definition of undirected graph with connected components
+  if (is.null(theta)) {
+    p <- sum(pk)
+    theta <- SimulateAdjacency(
+      pk = pk,
+      topology = "random",
+      nu_within = 0,
+      nu_between = nu_between
+    )
+    theta[lower.tri(theta)] <- 0
+  } else {
+    p <- pk <- ncol(theta)
+  }
+
+  # Definition of the residual variances
+  if (length(residual_var) == 1) {
+    residual_var <- rep(residual_var, p)
+  } else {
+    if (length(residual_var) != p) {
+      warning(paste0("Arguments are not consistent. The length of 'residual_var' needs to be equal to the number of variables (p=", p, "). The first entry was used."))
+      residual_var <- rep(residual_var[1], p)
+    }
+  }
+  if (any(residual_var <= 0)) {
+    warning("All entries in 'residual_var' need to be strictly positive. The absolute value was taken.")
+    residual_var <- abs(residual_var)
+  }
+
+  # Simulating path coefficients (no need to be p.d.)
+  set.seed(1)
+  random_mat <- SimulateSymmetricMatrix(
+    pk = p,
+    v_within = v_between,
+    v_between = v_between,
+    v_sign = v_sign,
+    continuous = continuous
+  )
+  L <- abs(random_mat) * theta
+
+  # Defining identity matrix
+  I <- diag(p)
+
+  # Simulating residual variance (all 1 for now)
+  D <- diag(residual_var)
+
+  # Computing corresponding precision matrix (p.d. by definition)
+  omega <- (I - L) %*% solve(D) %*% t(I - L)
+
+  # Computing the covariance matrix
+  if (scale) {
+    sigma <- stats::cov2cor(solve(omega))
+  } else {
+    sigma <- solve(omega)
+  }
+
+  # Computing the partial correlation matrix
+  if (output_matrices) {
+    phi <- -stats::cov2cor(omega) + 2 * diag(ncol(omega))
+  }
+
+  # Simulating data from multivariate normal distribution
+  x <- MASS::mvrnorm(n, rep(0, p), sigma)
+  colnames(x) <- paste0("var", 1:ncol(x))
+  rownames(x) <- paste0("obs", 1:nrow(x))
+
+  if (output_matrices) {
+    out <- list(
+      data = x, theta = theta,
+      path_coef = L, residual_var = diag(D),
+      omega = omega, phi = phi, sigma = sigma
+    )
+  } else {
+    out <- list(data = x, theta = theta)
+  }
+
+  # Defining the class
+  class(out) <- "simulation_structural_causal_model"
+
+  return(out)
+}
+
+
 #' Simulation of undirected graph with block structure
 #'
 #' Simulates the adjacency matrix of an unweighted, undirected graph with no
@@ -859,7 +1311,9 @@ SimulateAdjacency <- function(pk = 10,
                               implementation = HugeAdjacency,
                               topology = "random",
                               nu_within = 0.1,
-                              nu_between = 0, ...) {
+                              nu_between = 0,
+                              nu_mat = NULL,
+                              ...) {
   # Storing all arguments
   args <- c(mget(ls()), list(...))
 
@@ -871,6 +1325,17 @@ SimulateAdjacency <- function(pk = 10,
     }
   }
 
+  # Creating the matrix of probabilities
+  if (is.null(nu_mat)) {
+    nu_mat <- diag(length(pk)) * nu_within
+    nu_mat[upper.tri(nu_mat)] <- nu_between
+    nu_mat[lower.tri(nu_mat)] <- nu_between
+  } else {
+    if ((ncol(nu_mat) != length(pk)) & (nrow(nu_mat) != length(pk))) {
+      stop("Arguments 'pk' and 'nu_mat' are not compatible. They correspond to different numbers of communities. The number of rows and columns in 'nu_mat' must be equal to the length of the vector 'pk'.")
+    }
+  }
+
   # Creating matrix with block indices
   bigblocks <- BlockMatrix(pk)
   bigblocks_vect <- bigblocks[upper.tri(bigblocks)]
@@ -878,6 +1343,9 @@ SimulateAdjacency <- function(pk = 10,
   # Making as factor to allow for groups with 1 variable (for clustering)
   bigblocks_vect <- factor(bigblocks_vect, levels = seq(1, max(bigblocks)))
   block_ids <- unique(as.vector(bigblocks))
+
+  # Creating matrix with block structure
+  blocks <- BlockStructure(pk)
 
   # Identifying relevant arguments
   if (!"..." %in% names(formals(implementation))) {
@@ -892,19 +1360,25 @@ SimulateAdjacency <- function(pk = 10,
       theta <- matrix(0, nrow = sum(pk), ncol = sum(pk))
       theta_vect <- theta[upper.tri(theta)]
 
-      # Allowing for different densities in within and between blocks
-      theta_w <- do.call(implementation, args = c(args, list(nu = nu_within)))
-      theta_w_vect <- theta_w[upper.tri(theta_w)]
-      theta_b <- do.call(implementation, args = c(args, list(nu = nu_between)))
-      theta_b_vect <- theta_b[upper.tri(theta_b)]
+      # # Allowing for different densities in within and between blocks
+      # theta_w <- do.call(implementation, args = c(args, list(nu = nu_within)))
+      # theta_w_vect <- theta_w[upper.tri(theta_w)]
+      # theta_b <- do.call(implementation, args = c(args, list(nu = nu_between)))
+      # theta_b_vect <- theta_b[upper.tri(theta_b)]
 
       # Filling within and between blocks
       for (k in block_ids) {
-        if (k %in% unique(diag(bigblocks))) {
-          theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
-        } else {
-          theta_vect[bigblocks_vect == k] <- theta_b_vect[bigblocks_vect == k]
-        }
+        tmpids <- which(blocks == k, arr.ind = TRUE)
+        i <- tmpids[1]
+        j <- tmpids[2]
+        theta_w <- do.call(implementation, args = c(args, list(nu = nu_mat[i, j])))
+        theta_w_vect <- theta_w[upper.tri(theta_w)]
+        theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
+        # if (k %in% unique(diag(bigblocks))) {
+        #   theta_vect[bigblocks_vect == k] <- theta_w_vect[bigblocks_vect == k]
+        # } else {
+        #   theta_vect[bigblocks_vect == k] <- theta_b_vect[bigblocks_vect == k]
+        # }
       }
       theta[upper.tri(theta)] <- theta_vect
       theta <- theta + t(theta)
@@ -970,4 +1444,121 @@ HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
   theta <- theta[ids, ids]
 
   return(theta)
+}
+
+
+
+
+#' Simulation of precision matrix
+#'
+#' Simulates a sparse precision matrix from a binary adjacency matrix
+#' \code{theta} encoding conditional independence in a Gaussian Graphical Model.
+#'
+#' @inheritParams SimulateGraphical
+#' @param theta binary and symmetric adjacency matrix encoding the conditional
+#'   independence structure.
+#' @param scale logical indicating if the proportion of explained variance by
+#'   PC1 should be computed from the correlation (\code{scale=TRUE}) or
+#'   covariance (\code{scale=FALSE}) matrix.
+#'
+#' @return A list with: \item{omega}{true simulated precision matrix.}
+#'   \item{u}{value of the constant u used to ensure that \code{omega} is
+#'   positive definite.}
+#'
+#' @seealso \code{\link{SimulateGraphical}}, \code{\link{MakePositiveDefinite}}
+#'
+#' @details Entries that are equal to zero in the adjacency matrix \code{theta}
+#'   are also equal to zero in the generated precision matrix. These zero
+#'   entries indicate conditional independence between the corresponding pair of
+#'   variables (see \code{\link{SimulateGraphical}}).
+#'
+#'   Argument \code{pk} can be specified to create groups of variables and allow
+#'   for nonzero precision entries to be sampled from different distributions
+#'   between two variables belonging to the same group or to different groups.
+#'
+#'   If \code{continuous=FALSE}, nonzero off-diagonal entries of the precision
+#'   matrix are sampled from a discrete uniform distribution taking values in
+#'   \code{v_within} (for entries in the diagonal block) or \code{v_between}
+#'   (for entries in off-diagonal blocks). If \code{continuous=TRUE}, nonzero
+#'   off-diagonal entries are sampled from a continuous uniform distribution
+#'   taking values in the range given by \code{v_within} or \code{v_between}.
+#'
+#'   Diagonal entries of the precision matrix are defined to ensure positive
+#'   definiteness as described in \code{\link{MakePositiveDefinite}}.
+#'
+#' @references \insertRef{ourstabilityselection}{fake}
+#'
+#' @examples
+#' # Simulation of an adjacency matrix
+#' theta <- SimulateAdjacency(pk = c(5, 5), nu_within = 0.7)
+#' print(theta)
+#'
+#' # Simulation of a precision matrix maximising the contrast
+#' simul <- SimulatePrecision(theta = theta)
+#' print(simul$omega)
+#'
+#' # Simulation of a precision matrix with specific ev by PC1
+#' simul <- SimulatePrecision(
+#'   theta = theta,
+#'   pd_strategy = "min_eigenvalue",
+#'   ev_xx = 0.3, scale = TRUE
+#' )
+#' print(simul$omega)
+#' @export
+SimulatePrecision <- function(pk = NULL, theta,
+                              v_within = c(0.5, 1), v_between = c(0, 0.1),
+                              v_sign = c(-1, 1), continuous = TRUE,
+                              pd_strategy = "diagonally_dominant", ev_xx = NULL, scale = TRUE,
+                              u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25) {
+  # Checking inputs and defining pk
+  if (is.null(pk)) {
+    pk <- ncol(theta)
+  } else {
+    if (sum(pk) != ncol(theta)) {
+      stop("Arguments 'pk' and 'theta' are not consistent. The sum of 'pk' entries must be equal to the number of rows and columns in 'theta'.")
+    }
+  }
+
+  # Checking the choice of pd_strategy
+  if (!pd_strategy %in% c("diagonally_dominant", "min_eigenvalue")) {
+    stop("Invalid input for argument 'pd_strategy'. Possible values are: 'diagonally_dominant' or 'min_eigenvalue'.")
+  }
+
+  # Checking other input values
+  if (any((v_within < 0) | (v_within > 1))) {
+    stop("Invalid input for argument 'v_within'. Values must be between 0 and 1.")
+  }
+  if (any((v_between < 0) | (v_between > 1))) {
+    stop("Invalid input for argument 'v_between'. Values must be between 0 and 1.")
+  }
+  if (any(!v_sign %in% c(-1, 1))) {
+    stop("Invalid input for argument 'v_sign'. Possible values are -1 and 1.")
+  }
+
+  # Ensuring that v values are lower than or equal to 1
+  if (any(abs(v_within) > 1)) {
+    v_within <- v_within / max(abs(v_within))
+    message("The values provided in 'v_within' have been re-scaled to be lower than or equal to 1 in absolute value.")
+  }
+
+  # Ensuring that diagonal entries of theta are zero
+  diag(theta) <- 0
+
+  # Building v matrix
+  v <- SimulateSymmetricMatrix(
+    pk = pk, v_within = v_within, v_between = v_between,
+    v_sign = v_sign, continuous = continuous
+  )
+
+  # Filling off-diagonal entries of the precision matrix
+  omega_tilde <- theta * v
+
+  # Ensuring positive definiteness
+  omega_pd <- MakePositiveDefinite(
+    omega = omega_tilde, pd_strategy = pd_strategy,
+    ev_xx = ev_xx, scale = scale, u_list = u_list, tol = tol
+  )
+
+  # Returning the output
+  return(omega_pd)
 }
