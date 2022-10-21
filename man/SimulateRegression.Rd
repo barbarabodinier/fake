@@ -7,255 +7,108 @@
 SimulateRegression(
   n = 100,
   pk = 10,
-  N = 3,
-  family = "gaussian",
-  ev_xz = 0.8,
-  adjacency_x = NULL,
-  nu_within = 0.1,
-  theta_xz = NULL,
-  nu_xz = 0.2,
-  theta_zy = NULL,
-  nu_zy = 0.5,
-  eta = NULL,
-  eta_set = c(-1, 1),
-  v_within = c(0.5, 1),
-  v_sign = c(-1, 1),
+  xdata = NULL,
+  q = 1,
+  nu_xy = 0.5,
+  beta_abs = c(0.1, 1),
+  beta_sign = c(-1, 1),
   continuous = TRUE,
-  pd_strategy = "diagonally_dominant",
-  ev_xx = NULL,
-  scale_ev = TRUE,
-  u_list = c(1e-10, 1),
-  tol = .Machine$double.eps^0.25
+  ev_xy = 0.5
 )
 }
 \arguments{
-\item{n}{number of observations in the simulated data.}
+\item{n}{number of observations in the simulated dataset. Not used if
+\code{xdata} is provided.}
 
-\item{pk}{vector with the number of predictors in each independent block of
-variables in \code{xdata}. The number of independent blocks, which
-determines the maximum number of orthogonal latent variables that can be
-simulated, is given by \code{length(pk)}.}
+\item{pk}{number of predictor variables. A subset of these variables
+contribute to the outcome definition (see argument \code{nu_xy}). Not used
+if \code{xdata} is provided.}
 
-\item{N}{number of classes of the categorical outcome. Only used if
-\code{family="multinomial"}.}
+\item{xdata}{optional data matrix for the predictors with variables as
+columns and observations as rows. A subset of these variables contribute to
+the outcome definition (see argument \code{nu_xy}).}
 
-\item{family}{type of outcome. If \code{family="gaussian"}, normally
-distributed outcomes are simulated. If \code{family="binomial"} or
-\code{family="multinomial"}, binary outcome(s) are simulated from a
-multinomial distribution where the probability is defined from a linear
-combination of normally distributed outcomes.}
+\item{q}{number of outcome variables.}
 
-\item{ev_xz}{vector of the expected proportions of explained variances for
-each of the orthogonal latent variables. It must contain values in ]0,1[,
-and must be a vector of length \code{length(pk)} or a single value to
-generate latent variables with the same expected proportion of explained
-variance.}
+\item{nu_xy}{vector of length \code{q} with expected proportion of predictors
+contributing to the definition of each of the \code{q} outcomes.}
 
-\item{adjacency_x}{optional matrix encoding the conditional independence
-structure between predictor variables in \code{xdata}. This argument must
-be a binary symmetric matrix of size \code{sum(pk)} with zeros on the
-diagonal.}
+\item{beta_abs}{vector defining the (range of) nonzero regression
+coefficients. If \code{continuous=FALSE}, \code{beta_abs} is the set of
+possible precision values. If \code{continuous=TRUE}, \code{beta_abs} is
+the range of possible precision values.}
 
-\item{nu_within}{expected density (number of edges over the number of node
-pairs) of the conditional independence graph in the within-group blocks for
-predictors. For independent predictors, use \code{nu_within=0}. This
-argument is only used if \code{adjancency_x} is not provided.}
+\item{beta_sign}{vector of possible signs for regression coefficients.
+Possible inputs are: \code{1} for positive coefficients, \code{-1} for
+negative coefficients, or \code{c(-1, 1)} for both positive and negative
+coefficients.}
 
-\item{theta_xz}{optional binary matrix encoding the predictor variables from
-\code{xdata} (columns) contributing to the definition of the orthogonal
-latent outcomes from \code{zdata} (rows).}
+\item{continuous}{logical indicating whether to sample regression
+coefficients from a uniform distribution between the minimum and maximum
+values in \code{beta_abs} (if \code{continuous=TRUE}) or from proposed
+values in \code{beta_abs} (if \code{continuous=FALSE}).}
 
-\item{nu_xz}{expected proportion of relevant predictors over the total number
-of predictors to be used for the simulation of the orthogonal latent
-outcomes. This argument is only used if \code{theta_xz} is not provided.}
-
-\item{theta_zy}{optional binary matrix encoding the latent variables from
-\code{zdata} (columns) contributing to the definition of the observed
-outcomes from \code{ydata} (rows). This argument must be a square matrix of
-size \code{length(pk)}. If \code{theta_zy} is a diagonal matrix, each
-latent variable contributes to the definition of one observed outcome so
-that there is a one-to-one relationship between latent and observed
-outcomes (i.e. they are collinear). Nonzero off-diagonal elements in
-\code{theta_zy} introduce some correlation between the observed outcomes by
-construction from linear combinations implicating common latent outcomes.
-This argument is only used if \code{eta} is not provided.}
-
-\item{nu_zy}{probability for each of the off-diagonal elements in
-\code{theta_zy} to be a 1. If \code{nu_zy=0}, \code{theta_zy} is a diagonal
-matrix. This argument is only used if \code{theta_zy} is not provided.}
-
-\item{eta}{optional matrix of coefficients used in the linear combination of
-latent outcomes to generate observed outcomes.}
-
-\item{eta_set}{vector defining the range of values from which \code{eta} is
-sampled. This argument is only used if \code{eta} is not provided.}
-
-\item{v_within}{vector defining the (range of) nonzero entries in the
-diagonal blocks of the precision matrix. These values must be between -1
-and 1 if \code{pd_strategy="min_eigenvalue"}. If \code{continuous=FALSE},
-\code{v_within} is the set of possible precision values. If
-\code{continuous=TRUE}, \code{v_within} is the range of possible precision
-values.}
-
-\item{v_sign}{vector of possible signs for precision matrix entries. Possible
-inputs are: \code{-1} for positive partial correlations, \code{1} for
-negative partial correlations, or \code{c(-1, 1)} for both positive and
-negative partial correlations.}
-
-\item{continuous}{logical indicating whether to sample precision values from
-a uniform distribution between the minimum and maximum values in
-\code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(if \code{continuous=TRUE}) or from proposed values in \code{v_within}
-(diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
-\code{continuous=FALSE}).}
-
-\item{pd_strategy}{method to ensure that the generated precision matrix is
-positive definite (and hence can be a covariance matrix). If
-\code{pd_strategy="diagonally_dominant"}, the precision matrix is made
-diagonally dominant by setting the diagonal entries to the sum of absolute
-values on the corresponding row and a constant u. If
-\code{pd_strategy="min_eigenvalue"}, diagonal entries are set to the sum of
-the absolute value of the smallest eigenvalue of the precision matrix with
-zeros on the diagonal and a constant u.}
-
-\item{ev_xx}{expected proportion of explained variance by the first Principal
-Component (PC1) of a Principal Component Analysis applied on the
-predictors. This is the largest eigenvalue of the correlation (if
-\code{scale_ev=TRUE}) or covariance (if \code{scale_ev=FALSE}) matrix
-divided by the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the
-constant u is chosen by maximising the contrast of the correlation matrix.}
-
-\item{scale_ev}{logical indicating if the proportion of explained variance by
-PC1 should be computed from the correlation (\code{scale_ev=TRUE}) or
-covariance (\code{scale_ev=FALSE}) matrix. If \code{scale_ev=TRUE}, the
-correlation matrix is used as parameter of the multivariate normal
-distribution.}
-
-\item{u_list}{vector with two numeric values defining the range of values to
-explore for constant u.}
-
-\item{tol}{accuracy for the search of parameter u as defined in
-\code{\link[stats]{optimise}}.}
+\item{ev_xy}{vector of length \code{q} with proportions of predictors that
+contribute to the definition of each of the \code{q} outcomes.}
 }
 \value{
-A list with: \item{xdata}{simulated predictor data.}
-  \item{ydata}{simulated outcome data.} \item{proba}{simulated probability of
-  belonging to each outcome class. Only used for \code{family="binomial"} or
-  \code{family="multinomial"}.} \item{logit_proba}{logit of the simulated
-  probability of belonging to each outcome class. Only used for
-  \code{family="binomial"} or \code{family="multinomial"}.}
-  \item{zdata}{simulated data for orthogonal latent outcomes.}
-  \item{beta}{matrix of true beta coefficients used to generate outcomes in
-  \code{ydata} from predictors in \code{xdata}.} \item{theta}{binary matrix
-  indicating the predictors from \code{xdata} contributing to the definition
-  of each of the outcome variables in \code{ydata}.} \item{eta}{matrix of
-  coefficients used in the linear combination of latent variables from
-  \code{zdata} to define observed outcomes in \code{ydata}.}
-  \item{theta_zy}{binary matrix indicating the latent variables from
-  \code{zdata} used in the definition of observed outcomes in \code{ydata}.}
-  \item{xi}{matrix of true beta coefficients used to generate orthogonal
-  latent outcomes in \code{zdata} from predictors in \code{xdata}.}
-  \item{theta_xz}{binary matrix indicating the predictors from \code{xdata}
-  contributing to the definition of each of the latent outcome variables in
-  \code{zdata}.} \item{omega_xz}{precision matrix for variables in
-  \code{xdata} and \code{zdata}.} \item{adjacency}{binary matrix encoding the
-  conditional independence structure between variables from \code{xdata}
-  (\code{var}), \code{zdata} (\code{latent}) and \code{ydata}
-  (\code{outcome}).}
+A list with: \item{xdata}{input or simulated predictor data.}
+  \item{ydata}{simulated outcome data.} \item{beta}{matrix of true beta
+  coefficients used to generate outcomes in \code{ydata} from predictors in
+  \code{xdata}.} \item{theta}{binary matrix indicating the predictors from
+  \code{xdata} contributing to the definition of each of the outcome
+  variables in \code{ydata}.}
 }
 \description{
 Simulates data with outcome(s) and predictors, where only a subset of the
 predictors actually contributes to the definition of the outcome(s).
 }
 \details{
-For a univariate outcome (\code{length(pk)=1}), the simulation is
-  done in four steps where (i) predictors contributing to outcome definition
-  are randomly sampled (with probability \code{nu_xz} for a given predictor
-  to be picked), (ii) the conditional independence structure between the
-  predictors is simulated (with probability \code{nu_within} for a given pair
-  of predictors to be correlated, conditionally on all other variables),
-  (iii) generation of a precision matrix (inverse covariance matrix) for all
-  variables, where nonzero entries correspond to the predictors contributing
-  to outcome definition or conditional correlation between the predictors,
-  and (iv) data for both predictors and outcome is simulated from a single
-  multivariate Normal distribution using the inverse precision matrix as
-  covariance matrix.
-
-  To ensure that the generated precision matrix \eqn{\Omega} is positive
-  definite, the diagonal entries are defined as described in
-  \code{\link{MakePositiveDefinite}}. The conditional variance of the outcome
-  \eqn{\Omega_{YY}} is chosen so that the proportion of variance in the
-  outcome that is explained by the predictors is \code{ev_xz}.
-
-  For a multivariate outcome (\code{length(pk)>1}), we introduce independent
-  groups of predictors and orthogonal latent variables (groups are defined in
-  \code{pk}). Each latent variable is defined as a function of variables
-  belonging to one group of predictors. The precision matrix is defined as
-  described above for univariate outcomes. Subject to the re-ordering of its
-  rows, this precision matrix is block-diagonal, encoding the independence
-  between sets of variables made of (i) the groups of predictors, and (ii)
-  their corresponding latent variable. The outcome variables are then
-  constructed from a linear combination of the latent variables, allowing for
-  contributing predictors belonging to different groups.
-
-  The use of latent variables in the multivariate case ensures that we can
-  control the proportion of variance in the latent variable explained by the
-  predictors (\code{ev_xz}).
+Note that the simulation model used in this function has changed
+  substantially compared to fake version 1.0.0.
 }
 \examples{
-oldpar <- par(no.readonly = TRUE)
-par(mar = c(5, 5, 5, 5))
-
-## Continuous outcomes
+## Independent predictors
 
 # Univariate outcome
 set.seed(1)
 simul <- SimulateRegression(pk = 15)
 print(simul)
-plot(simul)
 
 # Multivariate outcome
 set.seed(1)
-simul <- SimulateRegression(pk = c(5, 7, 3))
+simul <- SimulateRegression(pk = 15, q = 3)
 print(simul)
-plot(simul)
+summary(simul)
 
-# Independent predictors
-set.seed(1)
-simul <- SimulateRegression(pk = c(5, 3), nu_within = 0)
-print(simul)
-plot(simul)
 
-# Blocks of strongly inter-connected predictors
-set.seed(1)
-simul <- SimulateRegression(
-  pk = c(5, 5), nu_within = 0.5,
-  v_within = c(0.5, 1), v_sign = -1, continuous = TRUE, pd_strategy = "min_eigenvalue"
+## Blocks of correlated predictors
+
+# Simulation of predictor data
+xsimul <- SimulateGraphical(pk = rep(5, 3), nu_within = 0.8, nu_between = 0, v_sign = -1)
+Heatmap(cor(xsimul$data),
+  legend_range = c(-1, 1),
+  col = c("navy", "white", "darkred")
 )
+
+# Simulation of outcome data
+simul <- SimulateRegression(xdata = xsimul$data)
 print(simul)
-Heatmap(
-  mat = cor(simul$xdata),
-  col = c("navy", "white", "red"),
-  legend_range = c(-1, 1)
-)
-plot(simul)
+summary(simul)
 
 
-## Categorical outcomes
+## Choosing expected proportion of explained variance
 
-# Binary outcome
+# Data simulation
 set.seed(1)
-simul <- SimulateRegression(pk = 20, family = "binomial")
+simul <- SimulateRegression(pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
 print(simul)
-table(simul$ydata[, 1])
+summary(simul)
 
-# Categorical outcome
-set.seed(1)
-simul <- SimulateRegression(pk = 20, family = "multinomial")
-print(simul)
-apply(simul$ydata, 2, sum)
-
-par(oldpar)
+# Checking the proportion of explained variance
+summary(lm(simul$ydata[, 1] ~ simul$xdata))
+summary(lm(simul$ydata[, 2] ~ simul$xdata))
+summary(lm(simul$ydata[, 3] ~ simul$xdata))
 }
 \references{
 \insertRef{ourstabilityselection}{fake}

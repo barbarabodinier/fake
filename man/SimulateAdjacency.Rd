@@ -15,11 +15,11 @@ SimulateAdjacency(
 )
 }
 \arguments{
-\item{pk}{vector of the number of variables per group in the simulated data.
-The number of nodes in the simulated graph is \code{sum(pk)}. With multiple
-groups, the simulated (partial) correlation matrix has a block structure,
-where blocks arise from the integration of the \code{length(pk)} groups.
-This argument is only used if \code{theta} is not provided.}
+\item{pk}{vector of the number of variables per group in the simulated
+dataset. The number of nodes in the simulated graph is \code{sum(pk)}. With
+multiple groups, the simulated (partial) correlation matrix has a block
+structure, where blocks arise from the integration of the \code{length(pk)}
+groups. This argument is only used if \code{theta} is not provided.}
 
 \item{implementation}{function for simulation of the graph. By default,
 algorithms implemented in \code{\link[huge]{huge.generator}} are used.
