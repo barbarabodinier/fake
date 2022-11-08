@@ -13,13 +13,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-# fake: Flexible Data Simulation Using The Multivariate Normal Distribution
+# fake: Flexible Data Simulation Using The Multivariate Normal Distribution <img src="man/figures/logo.png" align="right" width="174" height="200"/>
 
 <!-- badges: start -->
-  [![R-CMD-check](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml)
-  [![CRAN status](https://www.r-pkg.org/badges/version/fake)](https://CRAN.R-project.org/package=fake)
+[![CRAN status](https://www.r-pkg.org/badges/version/fake)](https://CRAN.R-project.org/package=fake)
 [![CRAN RStudio mirror downloads](https://cranlogs.r-pkg.org/badges/grand-total/fake?color=blue)](https://r-pkg.org/pkg/fake)
 ![GitHub last commit](https://img.shields.io/github/last-commit/barbarabodinier/fake?logo=GitHub&style=flat-square)
+[![R-CMD-check](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml)
   <!-- badges: end -->
 
 ## Description
