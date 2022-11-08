@@ -435,14 +435,13 @@ ExpectedCommunities <- function(pk, nu_within = 0.1, nu_between = 0, nu_mat = NU
 #' layers. There are no arrows between members of the same layer.
 #'
 #' @param layers list of vectors. Each vector in the list corresponds to a
-#'   layer. There are as many layers as items in the list.
+#'   layer. There are as many layers as items in the list. Alternatively, this
+#'   argument can be a vector of the number of variables per layer.
 #'
 #' @return The adjacency matrix of the layered Directed Acyclic Graph.
 #'
-#' @seealso \code{\link{SimulateSCM}}
-#'
 #' @examples
-#' # Example with 3 layers
+#' # Example with 3 layers specified in a list
 #' layers <- list(
 #'   c("x1", "x2", "x3"),
 #'   c("x4", "x5"),
@@ -451,15 +450,27 @@ ExpectedCommunities <- function(pk, nu_within = 0.1, nu_between = 0, nu_mat = NU
 #' dag <- LayeredDAG(layers)
 #' plot(dag)
 #'
+#' # Example with 3 layers specified in a vector
+#' dag <- LayeredDAG(layers = c(3, 2, 3))
+#' plot(dag)
+#'
 #' @export
 LayeredDAG <- function(layers) {
   # Extracting the number of members per layer
-  pk <- sapply(layers, length)
+  if (is.list(layers)) {
+    pk <- sapply(layers, length)
+  } else {
+    pk <- layers
+  }
 
   # Creating the adjacency matrix
   adjacency <- SimulateAdjacency(pk = pk, nu_within = 0, nu_between = 1)
   adjacency[lower.tri(adjacency)] <- 0
-  colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
+  if (is.list(layers)) {
+    colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
+  } else {
+    colnames(adjacency) <- rownames(adjacency) <- paste0("var", 1:sum(pk))
+  }
 
   return(adjacency)
 }

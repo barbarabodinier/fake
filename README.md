@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# fake: Flexible Data Simulation Using The Multivariate Normal Distribution
+# fake: Flexible Data Simulation Using The Multivariate Normal Distribution <img src="man/figures/logo.png" align="right" width="174" height="200"/>
 
 <!-- badges: start -->
 

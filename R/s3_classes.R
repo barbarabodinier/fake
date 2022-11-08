@@ -153,7 +153,8 @@ plot.simulation_structural_causal_model <- function(x, ...) {
 
 #' @export
 plot.adjacency_matrix <- function(x, ...) {
-  mygraph <- igraph::graph_from_adjacency_matrix(x, mode = ifelse(isSymmetric(x), yes = "undirected", no = "directed"))
+  mode <- ifelse(isSymmetric(x), yes = "undirected", no = "directed")
+  mygraph <- igraph::graph_from_adjacency_matrix(x, mode = mode)
 
   # Formatting vertices
   mydegrees <- igraph::degree(mygraph)
@@ -167,6 +168,11 @@ plot.adjacency_matrix <- function(x, ...) {
   # Formatting edges
   igraph::E(mygraph)$color <- "grey60"
   igraph::E(mygraph)$width <- 0.5
+
+  # Changing arrow size for directed graphs
+  if (mode == "directed") {
+    igraph::E(mygraph)$arrow.size <- 0.2
+  }
 
   # Graph layout
   if (all(x[lower.tri(x)] == 0)) {

@@ -266,6 +266,6 @@ Other simulation functions:
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()},
-\code{\link{SimulateSCM}()}
+\code{\link{SimulateStructural}()}
 }
 \concept{simulation functions}

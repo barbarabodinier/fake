@@ -8,7 +8,8 @@ LayeredDAG(layers)
 }
 \arguments{
 \item{layers}{list of vectors. Each vector in the list corresponds to a
-layer. There are as many layers as items in the list.}
+layer. There are as many layers as items in the list. Alternatively, this
+argument can be a vector of the number of variables per layer.}
 }
 \value{
 The adjacency matrix of the layered Directed Acyclic Graph.
@@ -19,7 +20,7 @@ graph, arrows go from all members of a layer to all members of the following
 layers. There are no arrows between members of the same layer.
 }
 \examples{
-# Example with 3 layers
+# Example with 3 layers specified in a list
 layers <- list(
   c("x1", "x2", "x3"),
   c("x4", "x5"),
@@ -28,7 +29,8 @@ layers <- list(
 dag <- LayeredDAG(layers)
 plot(dag)
 
-}
-\seealso{
-\code{\link{SimulateSCM}}
+# Example with 3 layers specified in a vector
+dag <- LayeredDAG(layers = c(3, 2, 3))
+plot(dag)
+
 }

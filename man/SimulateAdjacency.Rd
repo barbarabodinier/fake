@@ -113,6 +113,6 @@ Other simulation functions:
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateGraphical}()},
 \code{\link{SimulateRegression}()},
-\code{\link{SimulateSCM}()}
+\code{\link{SimulateStructural}()}
 }
 \concept{simulation functions}

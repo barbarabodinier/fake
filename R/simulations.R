@@ -1101,9 +1101,10 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 
 #' Data simulation for Structural Causal Modelling
 #'
-#' Simulates data from a Structural Causal Model (SCM). To ensure that the
-#' generated SCM is identifiable, the nodes are organised by layers, with no
-#' causal effects within layers.
+#' Simulates data from a multivariate Normal distribution where relationships
+#' between the variables correspond to a Structural Causal Model (SCM). To
+#' ensure that the generated SCM is identifiable, the nodes are organised by
+#' layers, with no causal effects within layers.
 #'
 #' @inheritParams SimulateGraphical
 #'
@@ -1132,6 +1133,8 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'
 #' @family simulation functions
 #'
+#' @references \insertRef{RegSEM}{fake}
+#'
 #' @return A list with: \item{data}{simulated data with \code{n} observation and
 #'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
 #'   Directed Acyclic Graph encoding causal relationships.}
@@ -1146,7 +1149,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #' # Simulation of a layered SCM
 #' set.seed(1)
 #' pk <- c(3, 5, 4)
-#' simul <- SimulateSCM(n = 100, pk = pk)
+#' simul <- SimulateStructural(n = 100, pk = pk)
 #' print(simul)
 #' summary(simul)
 #'
@@ -1160,16 +1163,16 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'   )
 #' }
 #' @export
-SimulateSCM <- function(n = 100,
-                        pk = c(5, 5, 5),
-                        theta = NULL,
-                        nu_between = 0.5,
-                        v_between = c(0.5, 1),
-                        v_sign = c(-1, 1),
-                        continuous = TRUE,
-                        residual_var = 1,
-                        scale = TRUE,
-                        output_matrices = FALSE) {
+SimulateStructural <- function(n = 100,
+                               pk = c(5, 5, 5),
+                               theta = NULL,
+                               nu_between = 0.5,
+                               v_between = c(0.5, 1),
+                               v_sign = c(-1, 1),
+                               continuous = TRUE,
+                               residual_var = 1,
+                               scale = TRUE,
+                               output_matrices = FALSE) {
   # Definition of undirected graph with connected components
   if (is.null(theta)) {
     p <- sum(pk)
@@ -1207,12 +1210,12 @@ SimulateSCM <- function(n = 100,
     v_sign = v_sign,
     continuous = continuous
   )
-  L <- abs(random_mat) * theta
+  L <- random_mat * abs(theta)
 
   # Defining identity matrix
   I <- diag(p)
 
-  # Simulating residual variance (all 1 for now)
+  # Simulating residual variance
   D <- diag(residual_var)
 
   # Computing corresponding precision matrix (p.d. by definition)
