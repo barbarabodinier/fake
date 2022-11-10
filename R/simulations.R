@@ -416,13 +416,23 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #' @param xdata optional data matrix for the predictors with variables as
 #'   columns and observations as rows. A subset of these variables contribute to
 #'   the outcome definition (see argument \code{nu_xy}).
+#' @param family type of regression model. Possible values include
+#'   \code{"gaussian"} for continuous outcome(s) or \code{"binomial"} for binary
+#'   outcome(s).
 #' @param q number of outcome variables.
+#' @param theta binary matrix with as many rows as predictors and as many
+#'   columns as outcomes. A nonzero entry on row \eqn{i} and column \eqn{j}
+#'   indicates that predictor \eqn{i} contributes to the definition of outcome
+#'   \eqn{j}.
 #' @param nu_xy vector of length \code{q} with expected proportion of predictors
 #'   contributing to the definition of each of the \code{q} outcomes.
-#' @param beta_abs vector defining the (range of) nonzero regression
-#'   coefficients. If \code{continuous=FALSE}, \code{beta_abs} is the set of
-#'   possible precision values. If \code{continuous=TRUE}, \code{beta_abs} is
-#'   the range of possible precision values.
+#' @param beta_abs vector defining the range of nonzero regression coefficients
+#'   in absolute values. If \code{continuous=FALSE}, \code{beta_abs} is the set
+#'   of possible precision values. If \code{continuous=TRUE}, \code{beta_abs} is
+#'   the range of possible precision values. Note that regression coefficients
+#'   are re-scaled if \code{family="binomial"} to ensure that the desired
+#'   concordance statistic can be achieved (see argument \code{ev_xy}) so they
+#'   may not be in this range.
 #' @param beta_sign vector of possible signs for regression coefficients.
 #'   Possible inputs are: \code{1} for positive coefficients, \code{-1} for
 #'   negative coefficients, or \code{c(-1, 1)} for both positive and negative
@@ -431,8 +441,12 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #'   coefficients from a uniform distribution between the minimum and maximum
 #'   values in \code{beta_abs} (if \code{continuous=TRUE}) or from proposed
 #'   values in \code{beta_abs} (if \code{continuous=FALSE}).
-#' @param ev_xy vector of length \code{q} with proportions of predictors that
-#'   contribute to the definition of each of the \code{q} outcomes.
+#' @param ev_xy vector of length \code{q} with expected goodness of fit measures
+#'   for each of the \code{q} outcomes. If \code{family="gaussian"}, the vector
+#'   contains expected proportions of variance in each of the \code{q} outcomes
+#'   that can be explained by the predictors. If \code{family="binomial"}, the
+#'   vector contains expected concordance statistics (i.e. area under the ROC
+#'   curve) given the true probabilities.
 #'
 #' @return A list with: \item{xdata}{input or simulated predictor data.}
 #'   \item{ydata}{simulated outcome data.} \item{beta}{matrix of true beta
@@ -441,31 +455,34 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #'   \code{xdata} contributing to the definition of each of the outcome
 #'   variables in \code{ydata}.}
 #'
-#' @details Note that the simulation model used in this function has changed
-#'   substantially compared to fake version 1.0.0.
-#'
 #' @family simulation functions
 #'
 #' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
+#' \donttest{
 #' ## Independent predictors
 #'
-#' # Univariate outcome
+#' # Univariate continuous outcome
 #' set.seed(1)
 #' simul <- SimulateRegression(pk = 15)
-#' print(simul)
+#' summary(simul)
 #'
-#' # Multivariate outcome
+#' # Univariate binary outcome
+#' set.seed(1)
+#' simul <- SimulateRegression(pk = 15, family = "binomial")
+#' table(simul$ydata)
+#'
+#' # Multiple continuous outcomes
 #' set.seed(1)
 #' simul <- SimulateRegression(pk = 15, q = 3)
-#' print(simul)
 #' summary(simul)
 #'
 #'
 #' ## Blocks of correlated predictors
 #'
 #' # Simulation of predictor data
+#' set.seed(1)
 #' xsimul <- SimulateGraphical(pk = rep(5, 3), nu_within = 0.8, nu_between = 0, v_sign = -1)
 #' Heatmap(cor(xsimul$data),
 #'   legend_range = c(-1, 1),
@@ -486,16 +503,34 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #' print(simul)
 #' summary(simul)
 #'
-#' # Checking the proportion of explained variance
+#' # Comparing with estimated proportion of explained variance
 #' summary(lm(simul$ydata[, 1] ~ simul$xdata))
 #' summary(lm(simul$ydata[, 2] ~ simul$xdata))
 #' summary(lm(simul$ydata[, 3] ~ simul$xdata))
+#'
+#'
+#' ## Choosing expected concordance (AUC)
+#'
+#' # Data simulation
+#' set.seed(1)
+#' simul <- SimulateRegression(
+#'   n = 500, pk = 10,
+#'   family = "binomial", ev_xy = 0.9
+#' )
+#'
+#' # Comparing with estimated concordance
+#' fitted <- glm(simul$ydata ~ simul$xdata,
+#'   family = "binomial"
+#' )$fitted.values
+#' Concordance(observed = simul$ydata, predicted = fitted)
+#' }
 #' @export
 SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
-                               q = 1, nu_xy = 0.5,
+                               family = "gaussian", q = 1,
+                               theta = NULL, nu_xy = 0.2,
                                beta_abs = c(0.1, 1), beta_sign = c(-1, 1), continuous = TRUE,
-                               ev_xy = 0.5) {
-  # TODO in future versions: introduce more families
+                               ev_xy = 0.7) {
+  # TODO in future versions: introduce more families ("multinomial" and "cox")
   # Checking that either n and pk or xdata are provided
   if (is.null(xdata)) {
     if (is.null(pk) | is.null(n)) {
@@ -530,11 +565,29 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
     xdata <- xsimul$data
   }
 
+  # Checking theta if provided
+  if (!is.null(theta)) {
+    if (q == 1) {
+      if (is.vector(theta)) {
+        theta <- cbind(theta)
+      }
+    }
+    if (ncol(theta) != q) {
+      stop("Arguments 'theta' and 'q' are not compatible. Please provide a matrix 'theta' with 'q' columns.")
+    }
+    if (nrow(theta) != p) {
+      stop("Please provide a matrix 'theta' with as many columns as predictors.")
+    }
+    theta <- ifelse(theta != 0, yes = 1, no = 0)
+  }
+
   # Sampling true predictors
-  theta_xy <- SamplePredictors(pk = p, q = q, nu = nu_xy, orthogonal = FALSE)
+  if (is.null(theta)) {
+    theta <- SamplePredictors(pk = p, q = q, nu = nu_xy, orthogonal = FALSE)
+  }
 
   # Sampling regression coefficients
-  beta <- theta_xy
+  beta <- theta
   if (continuous) {
     beta <- beta * matrix(stats::runif(n = nrow(beta) * ncol(beta), min = min(beta_abs), max = max(beta_abs)),
       nrow = nrow(beta), ncol = ncol(beta)
@@ -545,16 +598,56 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
     )
   }
 
-  # Creating outcome data
+  # Sampling outcome data
   ydata <- matrix(NA, ncol = q, nrow = nrow(xdata))
-  for (j in 1:q) {
-    ypred <- xdata %*% beta[, j]
-    sigma <- sqrt((1 - ev_xy[j]) / ev_xy[j] * stats::var(ypred))
-    ydata[, j] <- stats::rnorm(n = n, mean = ypred, sd = sigma)
+  if (family == "gaussian") {
+    for (j in 1:q) {
+      # Linear combination
+      ypred <- xdata %*% beta[, j]
+
+      # Calculating standard deviation that achieves desired proportion of explained variance
+      sigma <- sqrt((1 - ev_xy[j]) / ev_xy[j] * stats::var(ypred)) # using var(ypred) is a shortcut (could use true variances but not always available)
+
+      # Sampling from Normal distribution
+      ydata[, j] <- stats::rnorm(n = n, mean = ypred, sd = sigma)
+    }
+  }
+  if (family == "binomial") {
+    for (j in 1:q) {
+      # Linear combination
+      crude_log_odds <- xdata %*% beta[, j]
+
+      # Identifying a relevant range of scaling factors (logistic distribution)
+      s_max <- max(abs(crude_log_odds)) / log(0.51 / 0.49) # scale that gives all probabilities between 0.49 and 0.51 (expected c stat close to 0.5)
+      s_min <- min(abs(crude_log_odds)) / log(0.99 / 0.01) # scale that gives all probabilities above 0.99 or below 0.01 (expected c stat close to 1)
+
+      # Finding scaling factor that gives desired AUC (interval required to ensure optimisation works)
+      argmax_scaling_factor <- stats::optimise(
+        f = TuneCStatisticLogit,
+        crude_log_odds = crude_log_odds,
+        auc = ev_xy[j],
+        lower = 1 / s_max, upper = 1 / s_min
+      )
+      scaling_factor <- argmax_scaling_factor$minimum
+
+      # Applying scaling factor
+      beta[, j] <- beta[, j] * scaling_factor
+      log_odds <- crude_log_odds * scaling_factor
+
+      # Calculating probabilities from log-odds (inverse logit)
+      proba <- 1 / (1 + exp(-log_odds))
+
+      # Sampling from Bernouilli distribution
+      ydata[, j] <- stats::rbinom(n = n, size = 1, prob = proba)
+    }
   }
 
+  # Defining row and column names
+  rownames(ydata) <- rownames(xdata)
+  colnames(ydata) <- paste0("outcome", 1:q)
+
   # Preparing the output
-  out <- list(xdata = xdata, ydata = ydata, beta = beta, theta = theta_xy)
+  out <- list(xdata = xdata, ydata = ydata, beta = beta, theta = theta)
 
   # Defining the class
   class(out) <- "simulation_regression"
@@ -694,7 +787,7 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #'
 #' @export
 SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
-                               theta_xc = NULL, nu_xc = 0.1, ev_xc = NULL,
+                               theta_xc = NULL, nu_xc = 1, ev_xc = 0.5,
                                implementation = HugeAdjacency, topology = "random",
                                nu_within = 0, nu_between = NULL, nu_mat = NULL,
                                v_within = c(0.5, 1), v_between = c(0, 0.1),

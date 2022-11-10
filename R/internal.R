@@ -158,17 +158,17 @@ MaxContrast <- function(u, omega, digits = 3) {
 #' proportion of explained variance from the first Principal Component of a
 #' Principal Component Analysis applied on the covariance matrix. The precision
 #' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a covariance matrix with desired proportion of explained
-#' variance.
+#' matrix. This function is used to find the value of the constant u that
+#' generates a covariance matrix with desired proportion of explained variance.
 #'
 #' @inheritParams MaxContrast
-#' @param ev_xx desired proportion of explained variance. If \code{ev_xx=NULL}, the
-#'   obtained proportion of explained variance is returned.
+#' @param ev_xx desired proportion of explained variance. If \code{ev_xx=NULL},
+#'   the obtained proportion of explained variance is returned.
 #' @param lambda eigenvalues of the positive semidefinite precision matrix.
 #'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
+#' @return The absolute difference in proportion of explained variance (if
+#'   \code{ev_xx} is provided) or observed proportion of explained variance (if
+#'   \code{ev_xx=NULL}).
 #'
 #' @keywords internal
 TuneExplainedVarianceCov <- function(u, ev_xx = NULL, lambda) {
@@ -190,15 +190,15 @@ TuneExplainedVarianceCov <- function(u, ev_xx = NULL, lambda) {
 #' proportion of explained variance from the first Principal Component of a
 #' Principal Component Analysis applied on the correlation matrix. The precision
 #' matrix is obtained by adding u to the diagonal of a positive semidefinite
-#' matrix. This function is used to find the value of the constant u
-#' that generates a correlation matrix with desired proportion of explained
-#' variance.
+#' matrix. This function is used to find the value of the constant u that
+#' generates a correlation matrix with desired proportion of explained variance.
 #'
 #' @inheritParams TuneExplainedVarianceCov
 #' @param omega positive semidefinite precision matrix.
 #'
-#' @return The difference in proportion of explained variance in absolute values
-#'   or observed proportion of explained variance (if \code{ev_xx=NULL}).
+#' @return The absolute difference in proportion of explained variance (if
+#'   \code{ev_xx} is provided) or observed proportion of explained variance (if
+#'   \code{ev_xx=NULL}).
 #'
 #' @keywords internal
 TuneExplainedVarianceCor <- function(u, ev_xx = NULL, omega) {
@@ -214,28 +214,30 @@ TuneExplainedVarianceCor <- function(u, ev_xx = NULL, omega) {
 }
 
 
-#' Tuning function (regression)
+#' Tuning function (logistic regression)
 #'
-#' Computes the absolute difference between the smallest eigenvalue and
-#' requested one (parameter \code{tol}) for a precision matrix with predictors
-#' and outcomes.
+#' Computes the difference in absolute value between the desired and expected C
+#' statistic given the vector of true probabilities.
 #'
-#' @param ev_xz proportion of explained variance.
-#' @param omega precision matrix.
-#' @param tol requested smallest eigenvalue after transformation of the input
-#'   precision matrix.
-#' @param q number of outcome variables.
-#' @param p number of predictor variables.
+#' @param scaling_factor constant by which log-odds (or beta coefficients when
+#'   there is no intercept) are multiplied.
+#' @param crude_log_odds vector of log-odds to be multiplied by the
+#'   \code{scaling_factor}.
+#' @param auc desired concordance statistic (area under the ROC curve). If
+#'   \code{auc=NULL}, the obtained concordance statistic is returned.
 #'
-#' @return The absolute difference between the smallest eigenvalue of the
-#'   transformed precision matrix and requested value \code{tol}.
+#' @return The absolute difference between desired and expected concordance (if
+#'   \code{auc} is provided) or expected concordance (if \code{auc=NULL}).
 #'
 #' @keywords internal
-TuneExplainedVarianceReg <- function(ev_xz, omega, tol = 0.1, q, p) {
-  ev_xz <- rep(ev_xz, q)
-  for (j in 1:q) {
-    pred_ids <- seq(q + 1, q + p)
-    omega[j, j] <- omega[j, pred_ids, drop = FALSE] %*% solve(omega[pred_ids, pred_ids]) %*% t(omega[j, pred_ids, drop = FALSE]) * 1 / ev_xz[j]
+TuneCStatisticLogit <- function(scaling_factor, crude_log_odds, auc = NULL) {
+  log_odds <- crude_log_odds * scaling_factor
+  proba <- 1 / (1 + exp(-log_odds))
+  if (is.null(auc)) {
+    out <- ExpectedConcordance(probabilities = proba)
+  } else {
+    tmpauc <- ExpectedConcordance(probabilities = proba)
+    out <- abs(auc - tmpauc)
   }
-  return(abs(min(eigen(omega, only.values = TRUE)$values) - tol))
+  return(out)
 }

@@ -184,3 +184,82 @@ plot.simulation_regression <- function(x, ...) {
 
   igraph::plot.igraph(mygraph, ...)
 }
+
+
+#' Receiver Operating Characteristic (ROC) curve
+#'
+#' Plots the True Positive Rate (TPR) as a function of the False Positive Rate
+#' (FPR) for different thresholds in predicted probabilities.
+#'
+#' @param x output of \code{\link{ROC}}.
+#' @param add logical indicating if the curve should be added to the current
+#'   plot.
+#' @param ... additional plotting arguments (see \code{\link[graphics]{par}}).
+#'
+#' @return A base plot.
+#'
+#' @seealso \code{\link{ROC}}, \code{\link{Concordance}}
+#'
+#' @examples
+#' # Data simulation
+#' set.seed(1)
+#' simul <- SimulateRegression(
+#'   n = 500, pk = 20,
+#'   family = "binomial", ev_xy = 0.8
+#' )
+#'
+#' # Logistic regression
+#' fitted <- glm(simul$ydata ~ simul$xdata, family = "binomial")$fitted.values
+#'
+#' # Constructing the ROC curve
+#' roc <- ROC(predicted = fitted, observed = simul$ydata)
+#' plot(roc)
+#'
+#' @export
+plot.roc_curve <- function(x, add = FALSE, ...) {
+  # Storing extra arguments
+  extra_args <- list(...)
+
+  # Defining default parameters if not provided
+  if (!"xlim" %in% names(extra_args)) {
+    extra_args$xlim <- c(0, 1)
+  }
+  if (!"ylim" %in% names(extra_args)) {
+    extra_args$ylim <- c(0, 1)
+  }
+  if (!"lwd" %in% names(extra_args)) {
+    extra_args$lwd <- 2
+  }
+  if (!"xlab" %in% names(extra_args)) {
+    extra_args$xlab <- "False Positive Rate"
+  }
+  if (!"ylab" %in% names(extra_args)) {
+    extra_args$ylab <- "True Positive Rate"
+  }
+  if (!"las" %in% names(extra_args)) {
+    extra_args$las <- 1
+  }
+  if (!"cex.lab" %in% names(extra_args)) {
+    extra_args$cex.lab <- 1.3
+  }
+  if (!"col" %in% names(extra_args)) {
+    extra_args$col <- "red"
+  }
+
+  # Initialising the plot
+  tmp_extra_args <- MatchingArguments(extra_args = extra_args, FUN = plot)
+  if (!add) {
+    do.call(plot, args = c(list(x = NULL), tmp_extra_args))
+    graphics::abline(0, 1, lty = 3)
+  }
+
+  # Adding the point-wise average
+  tmp_extra_args <- MatchingArguments(extra_args = extra_args, FUN = graphics::lines)
+  do.call(graphics::lines, args = c(
+    list(
+      x = apply(x$FPR, 2, stats::median),
+      y = apply(x$TPR, 2, stats::median)
+    ),
+    tmp_extra_args
+  ))
+}

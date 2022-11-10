@@ -426,3 +426,55 @@ ExpectedCommunities <- function(pk, nu_within = 0.1, nu_between = 0, nu_mat = NU
     modularity = M
   ))
 }
+
+
+#' Expected concordance statistic
+#'
+#' Computes the expected concordance statistic given true probabilities of
+#' event. In logistic regression, the concordance statistic is equal to the area
+#' under the Receiver Operating Characteristic (ROC) curve and estimates the
+#' probability that an individual who experienced the event (\eqn{Y_i=1}) had a
+#' higher probability of event than an individual who did not experience the
+#' event (\eqn{Y_i=0}).
+#'
+#' @param probabilities vector of probabilities of event.
+#'
+#' @return The expected concordance statistic.
+#'
+#' @seealso \code{\link{Concordance}}
+#'
+#' @examples
+#'
+#' # Simulation of probabilities
+#' set.seed(1)
+#' proba <- runif(n = 1000)
+#'
+#' # Expected concordance
+#' ExpectedConcordance(proba)
+#'
+#' # Simulation of binary outcome
+#' ydata <- rbinom(n = length(proba), size = 1, prob = proba)
+#'
+#' # Observed concordance in simulated data
+#' Concordance(observed = ydata, predicted = proba)
+#'
+#' @export
+ExpectedConcordance <- function(probabilities) {
+  expected_number_pairs <- 0
+  expected_concordant_pairs <- 0
+  for (i in 1:(length(probabilities) - 1)) {
+    for (j in (i + 1):length(probabilities)) {
+      tmp1 <- probabilities[i] * (1 - probabilities[j])
+      tmp2 <- probabilities[j] * (1 - probabilities[i])
+      if (probabilities[i] > probabilities[j]) {
+        expected_concordant_pairs <- expected_concordant_pairs + tmp1
+      }
+      if (probabilities[j] > probabilities[i]) {
+        expected_concordant_pairs <- expected_concordant_pairs + tmp2
+      }
+      # Ties are not concordant pairs
+      expected_number_pairs <- expected_number_pairs + tmp1 + tmp2
+    }
+  }
+  return(expected_concordant_pairs / expected_number_pairs)
+}

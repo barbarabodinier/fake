@@ -8,12 +8,14 @@ SimulateRegression(
   n = 100,
   pk = 10,
   xdata = NULL,
+  family = "gaussian",
   q = 1,
-  nu_xy = 0.5,
+  theta = NULL,
+  nu_xy = 0.2,
   beta_abs = c(0.1, 1),
   beta_sign = c(-1, 1),
   continuous = TRUE,
-  ev_xy = 0.5
+  ev_xy = 0.7
 )
 }
 \arguments{
@@ -28,15 +30,27 @@ if \code{xdata} is provided.}
 columns and observations as rows. A subset of these variables contribute to
 the outcome definition (see argument \code{nu_xy}).}
 
+\item{family}{type of regression model. Possible values include
+\code{"gaussian"} for continuous outcome(s) or \code{"binomial"} for binary
+outcome(s).}
+
 \item{q}{number of outcome variables.}
+
+\item{theta}{binary matrix with as many rows as predictors and as many
+columns as outcomes. A nonzero entry on row \eqn{i} and column \eqn{j}
+indicates that predictor \eqn{i} contributes to the definition of outcome
+\eqn{j}.}
 
 \item{nu_xy}{vector of length \code{q} with expected proportion of predictors
 contributing to the definition of each of the \code{q} outcomes.}
 
-\item{beta_abs}{vector defining the (range of) nonzero regression
-coefficients. If \code{continuous=FALSE}, \code{beta_abs} is the set of
-possible precision values. If \code{continuous=TRUE}, \code{beta_abs} is
-the range of possible precision values.}
+\item{beta_abs}{vector defining the range of nonzero regression coefficients
+in absolute values. If \code{continuous=FALSE}, \code{beta_abs} is the set
+of possible precision values. If \code{continuous=TRUE}, \code{beta_abs} is
+the range of possible precision values. Note that regression coefficients
+are re-scaled if \code{family="binomial"} to ensure that the desired
+concordance statistic can be achieved (see argument \code{ev_xy}) so they
+may not be in this range.}
 
 \item{beta_sign}{vector of possible signs for regression coefficients.
 Possible inputs are: \code{1} for positive coefficients, \code{-1} for
@@ -48,8 +62,12 @@ coefficients from a uniform distribution between the minimum and maximum
 values in \code{beta_abs} (if \code{continuous=TRUE}) or from proposed
 values in \code{beta_abs} (if \code{continuous=FALSE}).}
 
-\item{ev_xy}{vector of length \code{q} with proportions of predictors that
-contribute to the definition of each of the \code{q} outcomes.}
+\item{ev_xy}{vector of length \code{q} with expected goodness of fit measures
+for each of the \code{q} outcomes. If \code{family="gaussian"}, the vector
+contains expected proportions of variance in each of the \code{q} outcomes
+that can be explained by the predictors. If \code{family="binomial"}, the
+vector contains expected concordance statistics (i.e. area under the ROC
+curve) given the true probabilities.}
 }
 \value{
 A list with: \item{xdata}{input or simulated predictor data.}
@@ -63,28 +81,30 @@ A list with: \item{xdata}{input or simulated predictor data.}
 Simulates data with outcome(s) and predictors, where only a subset of the
 predictors actually contributes to the definition of the outcome(s).
 }
-\details{
-Note that the simulation model used in this function has changed
-  substantially compared to fake version 1.0.0.
-}
 \examples{
+\donttest{
 ## Independent predictors
 
-# Univariate outcome
+# Univariate continuous outcome
 set.seed(1)
 simul <- SimulateRegression(pk = 15)
-print(simul)
+summary(simul)
 
-# Multivariate outcome
+# Univariate binary outcome
+set.seed(1)
+simul <- SimulateRegression(pk = 15, family = "binomial")
+table(simul$ydata)
+
+# Multiple continuous outcomes
 set.seed(1)
 simul <- SimulateRegression(pk = 15, q = 3)
-print(simul)
 summary(simul)
 
 
 ## Blocks of correlated predictors
 
 # Simulation of predictor data
+set.seed(1)
 xsimul <- SimulateGraphical(pk = rep(5, 3), nu_within = 0.8, nu_between = 0, v_sign = -1)
 Heatmap(cor(xsimul$data),
   legend_range = c(-1, 1),
@@ -105,10 +125,27 @@ simul <- SimulateRegression(pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
 print(simul)
 summary(simul)
 
-# Checking the proportion of explained variance
+# Comparing with estimated proportion of explained variance
 summary(lm(simul$ydata[, 1] ~ simul$xdata))
 summary(lm(simul$ydata[, 2] ~ simul$xdata))
 summary(lm(simul$ydata[, 3] ~ simul$xdata))
+
+
+## Choosing expected concordance (AUC)
+
+# Data simulation
+set.seed(1)
+simul <- SimulateRegression(
+  n = 500, pk = 10,
+  family = "binomial", ev_xy = 0.9
+)
+
+# Comparing with estimated concordance
+fitted <- glm(simul$ydata ~ simul$xdata,
+  family = "binomial"
+)$fitted.values
+Concordance(observed = simul$ydata, predicted = fitted)
+}
 }
 \references{
 \insertRef{ourstabilityselection}{fake}
