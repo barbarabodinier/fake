@@ -642,9 +642,13 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
     }
   }
 
-  # Defining row and column names
+  # Defining row and column names of ydata
   rownames(ydata) <- rownames(xdata)
   colnames(ydata) <- paste0("outcome", 1:q)
+
+  # Defining row and column names of beta and theta
+  rownames(beta) <- rownames(theta) <- colnames(xdata)
+  colnames(beta) <- colnames(theta) <- colnames(ydata)
 
   # Preparing the output
   out <- list(xdata = xdata, ydata = ydata, beta = beta, theta = theta)

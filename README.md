@@ -11,29 +11,88 @@ status](https://www.r-pkg.org/badges/version/fake)](https://CRAN.R-project.org/p
 downloads](https://cranlogs.r-pkg.org/badges/grand-total/fake?color=blue)](https://r-pkg.org/pkg/fake)
 ![GitHub last
 commit](https://img.shields.io/github/last-commit/barbarabodinier/fake?logo=GitHub&style=flat-square)
-[![R-CMD-check](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/barbarabodinier/fake/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
 ## Description
 
-> Simulation of data from Gaussian Graphical Models (B Bodinier, S
-> Filippi, TH Nost, J Chiquet, M Chadeau-Hyam (2021)
-> \<arXiv:2106.02521\>). By controlling the conditional independence
-> structure between the variables, these multivariate simulation tools
-> can be used to evaluate the performance of regression, dimensionality
-> reduction or graphical models.
+> This R package can be used to generate artificial data conditionally
+> on pre-specified (simulated or user-defined) relationships between the
+> simulated variables/observations. Each observation is drawn from a
+> multivariate Normal distribution where the mean vector and covariance
+> matrix reflect the desired relationships. Outputs can be used to
+> evaluate the performances of variable selection, clustering or
+> graphical modelling by comparing the true and estimated structures.
 
 ## Installation
+
+The released version of the package can be installed from
+[CRAN](https://CRAN.R-project.org) with:
+
+``` r
+install.packages("fake")
+```
 
 The development version can be installed from
 [GitHub](https://github.com/):
 
 ``` r
-devtools::install_github("barbarabodinier/fake")
+remotes::install_github("barbarabodinier/fake")
 ```
 
-## Use
+## Main functions
 
-Check out practical examples for stability selection with the R package
-[sharp](https://github.com/barbarabodinier/sharp) at
-<https://github.com/barbarabodinier/sharp>.
+### Linear model
+
+``` r
+library(fake)
+
+set.seed(1)
+simul <- SimulateRegression(n = 100, pk = 20)
+head(simul$xdata)
+head(simul$ydata)
+```
+
+### Logistic model
+
+``` r
+set.seed(1)
+simul <- SimulateRegression(n = 100, pk = 20, family = "binomial")
+head(simul$ydata)
+```
+
+### Gaussian mixture model
+
+``` r
+set.seed(1)
+simul <- SimulateClustering(n = c(10, 10, 10), pk = 20)
+head(simul$data)
+```
+
+### Gaussian graphical model
+
+``` r
+set.seed(1)
+simul <- SimulateGraphical(n = 100, pk = 20)
+head(simul$data)
+```
+
+## Extraction and visualisation of the results
+
+The true model structure is returned in the output of any of the main
+functions in:
+
+``` r
+simul$theta
+```
+
+The functions `print()`, `summary()` and `plot()` can be used on the
+outputs from the main functions.
+
+## Reference
+
+-   Barbara Bodinier, Sarah Filippi, Therese Haugdahl Nost, Julien
+    Chiquet and Marc Chadeau-Hyam. Automated calibration for stability
+    selection in penalised regression and graphical models: a
+    multi-OMICs network application exploring the molecular response to
+    tobacco smoking. (2021) arXiv.
+    [link](https://doi.org/10.48550/arXiv.2106.02521)

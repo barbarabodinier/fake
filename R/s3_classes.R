@@ -1,13 +1,13 @@
 #' @export
 print.simulation_graphical_model <- function(x, ...) {
-  cat(paste0("Multivariate Normal data with underlying structure of a graphical model."))
+  cat(paste0("Data generated from a Gaussian graphical model."))
   cat("\n")
 }
 
 
 #' @export
 print.simulation_clustering <- function(x, ...) {
-  cat(paste0("Multivariate Normal data with underlying clusters of participants along (a subset of) variables."))
+  cat(paste0("Data generated from a Gaussian mixture model."))
   cat("\n")
 }
 
@@ -21,7 +21,7 @@ print.simulation_components <- function(x, ...) {
 
 #' @export
 print.simulation_regression <- function(x, ...) {
-  cat(paste0("Multivariate Normal data with predictors and outcome(s)."))
+  cat(paste0("Two datasets where outcome data is generated conditionally on predictor data."))
   cat("\n")
 }
 
