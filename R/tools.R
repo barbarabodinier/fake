@@ -478,3 +478,51 @@ ExpectedConcordance <- function(probabilities) {
   }
   return(expected_concordant_pairs / expected_number_pairs)
 }
+
+
+#' Layered Directed Acyclic Graph
+#'
+#' Returns the adjacency matrix of a layered Directed Acyclic Graph. In this
+#' graph, arrows go from all members of a layer to all members of the following
+#' layers. There are no arrows between members of the same layer.
+#'
+#' @param layers list of vectors. Each vector in the list corresponds to a
+#'   layer. There are as many layers as items in the list. Alternatively, this
+#'   argument can be a vector of the number of variables per layer.
+#'
+#' @return The adjacency matrix of the layered Directed Acyclic Graph.
+#'
+#' @examples
+#' # Example with 3 layers specified in a list
+#' layers <- list(
+#'   c("x1", "x2", "x3"),
+#'   c("x4", "x5"),
+#'   c("x6", "x7", "x8")
+#' )
+#' dag <- LayeredDAG(layers)
+#' plot(dag)
+#'
+#' # Example with 3 layers specified in a vector
+#' dag <- LayeredDAG(layers = c(3, 2, 3))
+#' plot(dag)
+#'
+#' @export
+LayeredDAG <- function(layers) {
+  # Extracting the number of members per layer
+  if (is.list(layers)) {
+    pk <- sapply(layers, length)
+  } else {
+    pk <- layers
+  }
+
+  # Creating the adjacency matrix
+  adjacency <- SimulateAdjacency(pk = pk, nu_within = 0, nu_between = 1)
+  adjacency[lower.tri(adjacency)] <- 0
+  if (is.list(layers)) {
+    colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
+  } else {
+    colnames(adjacency) <- rownames(adjacency) <- paste0("var", 1:sum(pk))
+  }
+
+  return(adjacency)
+}
