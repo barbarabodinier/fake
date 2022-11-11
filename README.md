@@ -96,3 +96,12 @@ outputs from the main functions.
     multi-OMICs network application exploring the molecular response to
     tobacco smoking. (2021) arXiv.
     [link](https://doi.org/10.48550/arXiv.2106.02521)
+
+## Other resources
+
+-   R scripts to reproduce the simulation study (Bodinier et al. 2021)
+    conducted using the functions in **fake**
+    [link](https://github.com/barbarabodinier/stability_selection)
+
+-   R package **sharp** for stability selection and consensus clustering
+    [link](https://github.com/barbarabodinier/sharp)
