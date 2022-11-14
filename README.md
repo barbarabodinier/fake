@@ -61,19 +61,19 @@ simul <- SimulateRegression(n = 100, pk = 20, family = "binomial")
 head(simul$ydata)
 ```
 
-### Gaussian mixture model
-
-``` r
-set.seed(1)
-simul <- SimulateClustering(n = c(10, 10, 10), pk = 20)
-head(simul$data)
-```
-
 ### Gaussian graphical model
 
 ``` r
 set.seed(1)
 simul <- SimulateGraphical(n = 100, pk = 20)
+head(simul$data)
+```
+
+### Gaussian mixture model
+
+``` r
+set.seed(1)
+simul <- SimulateClustering(n = c(10, 10, 10), pk = 20)
 head(simul$data)
 ```
 
