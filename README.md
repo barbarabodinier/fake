@@ -20,8 +20,9 @@ commit](https://img.shields.io/github/last-commit/barbarabodinier/fake?logo=GitH
 > simulated variables/observations. Each observation is drawn from a
 > multivariate Normal distribution where the mean vector and covariance
 > matrix reflect the desired relationships. Outputs can be used to
-> evaluate the performances of variable selection, clustering or
-> graphical modelling by comparing the true and estimated structures.
+> evaluate the performances of variable selection, graphical modelling,
+> or clustering approaches by comparing the true and estimated
+> structures.
 
 ## Installation
 
