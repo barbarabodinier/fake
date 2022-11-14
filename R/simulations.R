@@ -1066,16 +1066,16 @@ SimulateStructural <- function(n = 100,
     v_sign = v_sign,
     continuous = continuous
   )
-  L <- random_mat * abs(theta)
+  A <- random_mat * abs(theta)
 
   # Defining identity matrix
   I <- diag(p)
 
   # Simulating residual variance
-  D <- diag(residual_var)
+  S <- diag(residual_var)
 
   # Computing corresponding precision matrix (p.d. by definition)
-  omega <- (I - L) %*% solve(D) %*% t(I - L)
+  omega <- (I - A) %*% solve(S) %*% t(I - A)
 
   # Computing the covariance matrix
   if (scale) {
@@ -1097,7 +1097,7 @@ SimulateStructural <- function(n = 100,
   if (output_matrices) {
     out <- list(
       data = x, theta = theta,
-      path_coef = L, residual_var = diag(D),
+      path_coef = A, residual_var = diag(S),
       omega = omega, phi = phi, sigma = sigma
     )
   } else {

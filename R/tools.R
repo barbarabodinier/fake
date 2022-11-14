@@ -516,7 +516,9 @@ LayeredDAG <- function(layers) {
   }
 
   # Creating the adjacency matrix
-  adjacency <- SimulateAdjacency(pk = pk, nu_within = 0, nu_between = 1)
+  adjacency <- BlockMatrix(pk)
+  adjacency[which(adjacency %in% diag(BlockStructure(pk)))] <- 0
+  adjacency <- ifelse(adjacency != 0, yes = 1, no = 0)
   adjacency[lower.tri(adjacency)] <- 0
   if (is.list(layers)) {
     colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
