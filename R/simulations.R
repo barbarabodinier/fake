@@ -963,6 +963,13 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #' layers, with no causal effects within layers.
 #'
 #' @inheritParams SimulateGraphical
+#' @param pk vector of the number of variables per layer.
+#' @param n_manifest vector of the number of manifest (observed) variables for
+#'   each of the \code{sum(pk)} variables. If \code{n_manifest=0}, there are
+#'   \code{sum(pk)} manifest variables and no latent variables. Otherwise, there
+#'   are \code{sum(pk)} latent variables and \code{sum(n_manifest)} manifest
+#'   variables. If \code{n_manifest} is a vector, all entries must be strictly
+#'   positive.
 #'
 #' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
 #'   \code{\link{Contrast}}
@@ -991,15 +998,17 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'
 #' @references \insertRef{RegSEM}{fake}
 #'
-#' @return A list with: \item{data}{simulated data with \code{n} observation and
-#'   \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
-#'   Directed Acyclic Graph encoding causal relationships.}
-#'   \item{path_coef}{simulated (true) matrix of path coefficients. Only
-#'   returned if \code{output_matrices=TRUE}.} \item{omega}{simulated (true)
-#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
-#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
-#'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
-#'   matrix. Only returned if \code{output_matrices=TRUE}.}
+#' @return A list with: \item{data}{simulated data with \code{n} observations
+#'   for manifest variables.} \item{data_all}{simulated data with \code{n}
+#'   observations for both manifest and latent variables.}
+#'   \item{theta}{adjacency matrix of the simulated Directed Acyclic Graph
+#'   encoding causal relationships.} \item{path_coef}{simulated (true) matrix of
+#'   path coefficients. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{omega}{simulated (true) precision matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
+#'   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{sigma}{simulated (true) covariance matrix. Only returned if
+#'   \code{output_matrices=TRUE}.}
 #'
 #' @examples
 #' # Simulation of a layered SCM
@@ -1008,6 +1017,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #' simul <- SimulateStructural(n = 100, pk = pk)
 #' print(simul)
 #' summary(simul)
+#' plot(simul)
 #'
 #' # Visualisation of the layers
 #' if (requireNamespace("igraph", quietly = TRUE)) {
@@ -1018,10 +1028,30 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'     )
 #'   )
 #' }
+#'
+#' # Simulation including latent and manifest variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 100,
+#'   pk = c(2, 3),
+#'   n_manifest = c(2, 3, 2, 1, 2)
+#' )
+#' plot(simul)
+#'
+#' # Showing manifest variables in red
+#' if (requireNamespace("igraph", quietly = TRUE)) {
+#'   mygraph <- plot(simul)
+#'   ids <- which(igraph::V(mygraph)$name %in% colnames(simul$data))
+#'   igraph::V(mygraph)$color[ids] <- "red"
+#'   igraph::V(mygraph)$frame.color[ids] <- "red"
+#'   plot(mygraph)
+#' }
+#'
 #' @export
 SimulateStructural <- function(n = 100,
                                pk = c(5, 5, 5),
                                theta = NULL,
+                               n_manifest = 0,
                                nu_between = 0.5,
                                v_between = c(0.5, 1),
                                v_sign = c(-1, 1),
@@ -1029,9 +1059,8 @@ SimulateStructural <- function(n = 100,
                                residual_var = 1,
                                scale = TRUE,
                                output_matrices = FALSE) {
-  # Definition of undirected graph with connected components
+  # Simulation of layered directed acyclic graph between latent variables
   if (is.null(theta)) {
-    p <- sum(pk)
     theta <- SimulateAdjacency(
       pk = pk,
       topology = "random",
@@ -1039,9 +1068,26 @@ SimulateStructural <- function(n = 100,
       nu_between = nu_between
     )
     theta[lower.tri(theta)] <- 0
-  } else {
-    p <- pk <- ncol(theta)
   }
+  p_latent <- ncol(theta)
+
+  # Addition of manifest variables for each latent variable
+  if (all(n_manifest != 0)) {
+    # Expanding the vector if needed
+    if (length(n_manifest) != ncol(theta)) {
+      n_manifest <- rep(n_manifest[1], ncol(theta))
+    }
+
+    # Adding manifest variables in adjacency matrix
+    tmpfactor <- as.factor(rep.int(1:length(n_manifest), times = n_manifest))
+    submatrix_manifest <- t(stats::model.matrix(~ tmpfactor - 1))
+    theta <- cbind(theta, submatrix_manifest)
+    theta <- rbind(theta, matrix(0, ncol = ncol(theta), nrow = ncol(theta) - nrow(theta)))
+
+    # Defining row and column names
+    rownames(theta) <- colnames(theta) <- paste0("var", 1:ncol(theta))
+  }
+  p <- pk <- ncol(theta)
 
   # Definition of the residual variances
   if (length(residual_var) == 1) {
@@ -1094,14 +1140,22 @@ SimulateStructural <- function(n = 100,
   colnames(x) <- paste0("var", 1:ncol(x))
   rownames(x) <- paste0("obs", 1:nrow(x))
 
+  # Excluding the latent variables
+  if (all(n_manifest != 0)) {
+    x_observed <- x[, -seq(1, p_latent)]
+  } else {
+    x_observed <- x
+  }
+
+  # Preparing the output
   if (output_matrices) {
     out <- list(
-      data = x, theta = theta,
+      data = x_observed, data_all = x, theta = theta,
       path_coef = A, residual_var = diag(S),
       omega = omega, phi = phi, sigma = sigma
     )
   } else {
-    out <- list(data = x, theta = theta)
+    out <- list(data = x_observed, theta = theta)
   }
 
   # Defining the class

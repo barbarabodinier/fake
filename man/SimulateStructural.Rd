@@ -8,6 +8,7 @@ SimulateStructural(
   n = 100,
   pk = c(5, 5, 5),
   theta = NULL,
+  n_manifest = 0,
   nu_between = 0.5,
   v_between = c(0.5, 1),
   v_sign = c(-1, 1),
@@ -20,14 +21,17 @@ SimulateStructural(
 \arguments{
 \item{n}{number of observations in the simulated dataset.}
 
-\item{pk}{vector of the number of variables per group in the simulated
-dataset. The number of nodes in the simulated graph is \code{sum(pk)}. With
-multiple groups, the simulated (partial) correlation matrix has a block
-structure, where blocks arise from the integration of the \code{length(pk)}
-groups. This argument is only used if \code{theta} is not provided.}
+\item{pk}{vector of the number of variables per layer.}
 
 \item{theta}{optional binary and symmetric adjacency matrix encoding the
 conditional independence structure.}
+
+\item{n_manifest}{vector of the number of manifest (observed) variables for
+each of the \code{sum(pk)} variables. If \code{n_manifest=0}, there are
+\code{sum(pk)} manifest variables and no latent variables. Otherwise, there
+are \code{sum(pk)} latent variables and \code{sum(n_manifest)} manifest
+variables. If \code{n_manifest} is a vector, all entries must be strictly
+positive.}
 
 \item{nu_between}{probability of having an edge between two nodes belonging
 to different layers, as defined in \code{pk}. If \code{length(pk)=1}, this
@@ -60,15 +64,17 @@ residual variances, and precision and (partial) correlation matrices should
 be included in the output.}
 }
 \value{
-A list with: \item{data}{simulated data with \code{n} observation and
-  \code{sum(pk)} variables.} \item{theta}{adjacency matrix of the simulated
-  Directed Acyclic Graph encoding causal relationships.}
-  \item{path_coef}{simulated (true) matrix of path coefficients. Only
-  returned if \code{output_matrices=TRUE}.} \item{omega}{simulated (true)
-  precision matrix. Only returned if \code{output_matrices=TRUE}.}
-  \item{phi}{simulated (true) partial correlation matrix. Only returned if
-  \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
-  matrix. Only returned if \code{output_matrices=TRUE}.}
+A list with: \item{data}{simulated data with \code{n} observations
+  for manifest variables.} \item{data_all}{simulated data with \code{n}
+  observations for both manifest and latent variables.}
+  \item{theta}{adjacency matrix of the simulated Directed Acyclic Graph
+  encoding causal relationships.} \item{path_coef}{simulated (true) matrix of
+  path coefficients. Only returned if \code{output_matrices=TRUE}.}
+  \item{omega}{simulated (true) precision matrix. Only returned if
+  \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
+  correlation matrix. Only returned if \code{output_matrices=TRUE}.}
+  \item{sigma}{simulated (true) covariance matrix. Only returned if
+  \code{output_matrices=TRUE}.}
 }
 \description{
 Simulates data from a multivariate Normal distribution where relationships
@@ -83,6 +89,7 @@ pk <- c(3, 5, 4)
 simul <- SimulateStructural(n = 100, pk = pk)
 print(simul)
 summary(simul)
+plot(simul)
 
 # Visualisation of the layers
 if (requireNamespace("igraph", quietly = TRUE)) {
@@ -93,6 +100,25 @@ if (requireNamespace("igraph", quietly = TRUE)) {
     )
   )
 }
+
+# Simulation including latent and manifest variables
+set.seed(1)
+simul <- SimulateStructural(
+  n = 100,
+  pk = c(2, 3),
+  n_manifest = c(2, 3, 2, 1, 2)
+)
+plot(simul)
+
+# Showing manifest variables in red
+if (requireNamespace("igraph", quietly = TRUE)) {
+  mygraph <- plot(simul)
+  ids <- which(igraph::V(mygraph)$name \%in\% colnames(simul$data))
+  igraph::V(mygraph)$color[ids] <- "red"
+  igraph::V(mygraph)$frame.color[ids] <- "red"
+  plot(mygraph)
+}
+
 }
 \references{
 \insertRef{RegSEM}{fake}
