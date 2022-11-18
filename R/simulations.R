@@ -256,6 +256,9 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
   colnames(x) <- paste0("var", 1:ncol(x))
   rownames(x) <- paste0("obs", 1:nrow(x))
 
+  # Defining the class of theta
+  class(theta) <- c("matrix", "adjacency_matrix")
+
   if (output_matrices) {
     out <- list(
       data = x, theta = theta,
@@ -963,16 +966,13 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #' layers, with no causal effects within layers.
 #'
 #' @inheritParams SimulateGraphical
-#' @param pk vector of the number of variables per layer.
-#' @param n_manifest vector of the number of manifest (observed) variables for
-#'   each of the \code{sum(pk)} variables. If \code{n_manifest=0}, there are
-#'   \code{sum(pk)} manifest variables and no latent variables. Otherwise, there
-#'   are \code{sum(pk)} latent variables and \code{sum(n_manifest)} manifest
-#'   variables. If \code{n_manifest} is a vector, all entries must be strictly
+#' @param pk vector of the number of (latent) variables per layer.
+#' @param n_manifest vector of the number of manifest (observed) variables
+#'   measuring each of the latent variables. If \code{n_manifest=NULL}, there
+#'   are \code{sum(pk)} manifest variables and no latent variables. Otherwise,
+#'   there are \code{sum(pk)} latent variables and \code{sum(n_manifest)}
+#'   manifest variables. All entries of \code{n_manifest} must be strictly
 #'   positive.
-#'
-#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
-#'   \code{\link{Contrast}}
 #' @param nu_between probability of having an edge between two nodes belonging
 #'   to different layers, as defined in \code{pk}. If \code{length(pk)=1}, this
 #'   is the expected density of the graph.
@@ -987,26 +987,28 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'   a uniform distribution between the minimum and maximum values in
 #'   \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
 #'   \code{v_between} (if \code{continuous=FALSE}).
-#' @param residual_var vector of residual variances. The length of the vector
-#'   should be equal to \code{sum(pk)} or \code{ncol(theta)}. The same value is
-#'   used for all variables if a single value is provided (the default).
+#' @param ev_manifest vector of proportions of variance in each of the manifest
+#'   variable that can be explained by its latent parents. Only used if
+#'   \code{n_manifest} is provided.
 #' @param output_matrices logical indicating if the true path coefficients,
 #'   residual variances, and precision and (partial) correlation matrices should
 #'   be included in the output.
+#'
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
+#'   \code{\link{Contrast}}
 #'
 #' @family simulation functions
 #'
 #' @references \insertRef{RegSEM}{fake}
 #'
 #' @return A list with: \item{data}{simulated data with \code{n} observations
-#'   for manifest variables.} \item{data_all}{simulated data with \code{n}
-#'   observations for both manifest and latent variables.}
-#'   \item{theta}{adjacency matrix of the simulated Directed Acyclic Graph
-#'   encoding causal relationships.} \item{path_coef}{simulated (true) matrix of
-#'   path coefficients. Only returned if \code{output_matrices=TRUE}.}
-#'   \item{omega}{simulated (true) precision matrix. Only returned if
-#'   \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
-#'   correlation matrix. Only returned if \code{output_matrices=TRUE}.}
+#'   for manifest variables.} \item{theta}{adjacency matrix of the simulated
+#'   Directed Acyclic Graph encoding causal relationships.}
+#'   \item{Amat}{simulated (true) asymmetric matrix A in RAM notation. Only
+#'   returned if \code{output_matrices=TRUE}.} \item{Smat}{simulated (true)
+#'   symmetric matrix S in RAM notation. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{Fmat}{simulated (true) filter matrix F
+#'   in RAM notation. Only returned if \code{output_matrices=TRUE}.}
 #'   \item{sigma}{simulated (true) covariance matrix. Only returned if
 #'   \code{output_matrices=TRUE}.}
 #'
@@ -1051,12 +1053,12 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 SimulateStructural <- function(n = 100,
                                pk = c(5, 5, 5),
                                theta = NULL,
-                               n_manifest = 0,
+                               n_manifest = NULL,
                                nu_between = 0.5,
                                v_between = c(0.5, 1),
                                v_sign = c(-1, 1),
                                continuous = TRUE,
-                               residual_var = 1,
+                               ev_manifest = 0.8,
                                scale = TRUE,
                                output_matrices = FALSE) {
   # Simulation of layered directed acyclic graph between latent variables
@@ -1069,10 +1071,11 @@ SimulateStructural <- function(n = 100,
     )
     theta[lower.tri(theta)] <- 0
   }
-  p_latent <- ncol(theta)
 
   # Addition of manifest variables for each latent variable
-  if (all(n_manifest != 0)) {
+  if (!is.null(n_manifest)) {
+    p_latent <- ncol(theta)
+
     # Expanding the vector if needed
     if (length(n_manifest) != ncol(theta)) {
       n_manifest <- rep(n_manifest[1], ncol(theta))
@@ -1081,26 +1084,25 @@ SimulateStructural <- function(n = 100,
     # Adding manifest variables in adjacency matrix
     tmpfactor <- as.factor(rep.int(1:length(n_manifest), times = n_manifest))
     submatrix_manifest <- t(stats::model.matrix(~ tmpfactor - 1))
-    theta <- cbind(theta, submatrix_manifest)
-    theta <- rbind(theta, matrix(0, ncol = ncol(theta), nrow = ncol(theta) - nrow(theta)))
+    theta <- cbind(submatrix_manifest, theta)
+    theta <- rbind(matrix(0, ncol = ncol(theta), nrow = ncol(theta) - nrow(theta)), theta)
 
     # Defining row and column names
     rownames(theta) <- colnames(theta) <- paste0("var", 1:ncol(theta))
+  } else {
+    p_latent <- 0
   }
   p <- pk <- ncol(theta)
 
-  # Definition of the residual variances
-  if (length(residual_var) == 1) {
-    residual_var <- rep(residual_var, p)
+  # Defining row and column names
+  if (!is.null(n_manifest)) {
+    ids_manifest <- seq(1, sum(n_manifest))
+    ids_latent <- seq(sum(n_manifest) + 1, ncol(theta))
+    rownames(theta)[ids_manifest] <- colnames(theta)[ids_manifest] <- paste0("x", seq(1, length(ids_manifest)))
+    rownames(theta)[ids_latent] <- colnames(theta)[ids_latent] <- paste0("f", seq(1, length(ids_latent)))
   } else {
-    if (length(residual_var) != p) {
-      warning(paste0("Arguments are not consistent. The length of 'residual_var' needs to be equal to the number of variables (p=", p, "). The first entry was used."))
-      residual_var <- rep(residual_var[1], p)
-    }
-  }
-  if (any(residual_var <= 0)) {
-    warning("All entries in 'residual_var' need to be strictly positive. The absolute value was taken.")
-    residual_var <- abs(residual_var)
+    ids_manifest <- seq(1, ncol(theta))
+    colnames(theta) <- rownames(theta) <- paste0("x", 1:sum(pk))
   }
 
   # Simulating path coefficients (no need to be p.d.)
@@ -1112,50 +1114,52 @@ SimulateStructural <- function(n = 100,
     v_sign = v_sign,
     continuous = continuous
   )
-  A <- random_mat * abs(theta)
+  Amat <- t(random_mat * abs(theta))
 
   # Defining identity matrix
-  I <- diag(p)
+  Imat <- diag(p)
+  rownames(Imat) <- colnames(Imat) <- colnames(Amat)
 
-  # Simulating residual variance
-  S <- diag(residual_var)
+  # Defining residual variance
+  Smat <- diag(p)
+  rownames(Smat) <- colnames(Smat) <- colnames(Amat)
 
-  # Computing corresponding precision matrix (p.d. by definition)
-  omega <- (I - A) %*% solve(S) %*% t(I - A)
+  # Defining filter matrix
+  Fmat <- Imat[seq(1, p - p_latent), ]
 
-  # Computing the covariance matrix
-  if (scale) {
-    sigma <- stats::cov2cor(solve(omega))
-  } else {
-    sigma <- solve(omega)
+  if (p_latent > 0) {
+    # Computing the covariance matrix for latent variables only
+    sigma_latent <- solve(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]) %*% Smat[ids_latent, ids_latent] %*% solve(t(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]))
+
+    # Defining residual variances of manifest variables
+    diag(Smat)[ids_manifest] <- (apply(Amat[ids_manifest, ], 1, sum)^2) * rep.int(diag(sigma_latent), times = n_manifest) * (1 - ev_manifest) / ev_manifest
   }
 
-  # Computing the partial correlation matrix
-  if (output_matrices) {
-    phi <- -stats::cov2cor(omega) + 2 * diag(ncol(omega))
+  # Computing corresponding covariance matrix (p.d. by definition)
+  sigma <- Fmat %*% solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat)) %*% t(Fmat)
+
+  # Computing the correlation matrix
+  if (scale) {
+    sigma <- stats::cov2cor(sigma)
   }
 
   # Simulating data from multivariate normal distribution
-  x <- MASS::mvrnorm(n, rep(0, p), sigma)
-  colnames(x) <- paste0("var", 1:ncol(x))
+  x <- MASS::mvrnorm(n, rep(0, ncol(sigma)), sigma)
+  colnames(x) <- colnames(theta)[ids_manifest]
   rownames(x) <- paste0("obs", 1:nrow(x))
 
-  # Excluding the latent variables
-  if (all(n_manifest != 0)) {
-    x_observed <- x[, -seq(1, p_latent)]
-  } else {
-    x_observed <- x
-  }
+  # Defining the class of theta
+  class(theta) <- c("matrix", "adjacency_matrix")
 
   # Preparing the output
   if (output_matrices) {
     out <- list(
-      data = x_observed, data_all = x, theta = theta,
-      path_coef = A, residual_var = diag(S),
-      omega = omega, phi = phi, sigma = sigma
+      data = x, theta = theta,
+      Amat = Amat, Smat = Smat, Fmat = Fmat,
+      sigma = sigma
     )
   } else {
-    out <- list(data = x_observed, theta = theta)
+    out <- list(data = x, theta = theta)
   }
 
   # Defining the class

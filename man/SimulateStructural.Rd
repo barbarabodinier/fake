@@ -8,12 +8,12 @@ SimulateStructural(
   n = 100,
   pk = c(5, 5, 5),
   theta = NULL,
-  n_manifest = 0,
+  n_manifest = NULL,
   nu_between = 0.5,
   v_between = c(0.5, 1),
   v_sign = c(-1, 1),
   continuous = TRUE,
-  residual_var = 1,
+  ev_manifest = 0.8,
   scale = TRUE,
   output_matrices = FALSE
 )
@@ -21,16 +21,16 @@ SimulateStructural(
 \arguments{
 \item{n}{number of observations in the simulated dataset.}
 
-\item{pk}{vector of the number of variables per layer.}
+\item{pk}{vector of the number of (latent) variables per layer.}
 
 \item{theta}{optional binary and symmetric adjacency matrix encoding the
 conditional independence structure.}
 
-\item{n_manifest}{vector of the number of manifest (observed) variables for
-each of the \code{sum(pk)} variables. If \code{n_manifest=0}, there are
-\code{sum(pk)} manifest variables and no latent variables. Otherwise, there
-are \code{sum(pk)} latent variables and \code{sum(n_manifest)} manifest
-variables. If \code{n_manifest} is a vector, all entries must be strictly
+\item{n_manifest}{vector of the number of manifest (observed) variables
+measuring each of the latent variables. If \code{n_manifest=NULL}, there
+are \code{sum(pk)} manifest variables and no latent variables. Otherwise,
+there are \code{sum(pk)} latent variables and \code{sum(n_manifest)}
+manifest variables. All entries of \code{n_manifest} must be strictly
 positive.}
 
 \item{nu_between}{probability of having an edge between two nodes belonging
@@ -51,9 +51,9 @@ a uniform distribution between the minimum and maximum values in
 \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
 \code{v_between} (if \code{continuous=FALSE}).}
 
-\item{residual_var}{vector of residual variances. The length of the vector
-should be equal to \code{sum(pk)} or \code{ncol(theta)}. The same value is
-used for all variables if a single value is provided (the default).}
+\item{ev_manifest}{vector of proportions of variance in each of the manifest
+variable that can be explained by its latent parents. Only used if
+\code{n_manifest} is provided.}
 
 \item{scale}{logical indicating if the true mean is zero and true variance is
 one for all simulated variables. The observed mean and variance may be
@@ -65,14 +65,13 @@ be included in the output.}
 }
 \value{
 A list with: \item{data}{simulated data with \code{n} observations
-  for manifest variables.} \item{data_all}{simulated data with \code{n}
-  observations for both manifest and latent variables.}
-  \item{theta}{adjacency matrix of the simulated Directed Acyclic Graph
-  encoding causal relationships.} \item{path_coef}{simulated (true) matrix of
-  path coefficients. Only returned if \code{output_matrices=TRUE}.}
-  \item{omega}{simulated (true) precision matrix. Only returned if
-  \code{output_matrices=TRUE}.} \item{phi}{simulated (true) partial
-  correlation matrix. Only returned if \code{output_matrices=TRUE}.}
+  for manifest variables.} \item{theta}{adjacency matrix of the simulated
+  Directed Acyclic Graph encoding causal relationships.}
+  \item{Amat}{simulated (true) asymmetric matrix A in RAM notation. Only
+  returned if \code{output_matrices=TRUE}.} \item{Smat}{simulated (true)
+  symmetric matrix S in RAM notation. Only returned if
+  \code{output_matrices=TRUE}.} \item{Fmat}{simulated (true) filter matrix F
+  in RAM notation. Only returned if \code{output_matrices=TRUE}.}
   \item{sigma}{simulated (true) covariance matrix. Only returned if
   \code{output_matrices=TRUE}.}
 }

@@ -4,12 +4,17 @@
 \alias{LayeredDAG}
 \title{Layered Directed Acyclic Graph}
 \usage{
-LayeredDAG(layers)
+LayeredDAG(layers, n_manifest = NULL)
 }
 \arguments{
 \item{layers}{list of vectors. Each vector in the list corresponds to a
 layer. There are as many layers as items in the list. Alternatively, this
 argument can be a vector of the number of variables per layer.}
+
+\item{n_manifest}{vector of the number of manifest (observed) variables
+measuring each of the latent variables. If \code{n_manifest} is provided,
+the variables defined in argument \code{layers} are considered latent. All
+entries of \code{n_manifest} must be strictly positive.}
 }
 \value{
 The adjacency matrix of the layered Directed Acyclic Graph.
