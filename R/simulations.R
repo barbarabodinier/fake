@@ -1059,7 +1059,6 @@ SimulateStructural <- function(n = 100,
                                v_sign = c(-1, 1),
                                continuous = TRUE,
                                ev_manifest = 0.8,
-                               scale = TRUE,
                                output_matrices = FALSE) {
   # Simulation of layered directed acyclic graph between latent variables
   if (is.null(theta)) {
@@ -1137,11 +1136,6 @@ SimulateStructural <- function(n = 100,
 
   # Computing corresponding covariance matrix (p.d. by definition)
   sigma <- Fmat %*% solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat)) %*% t(Fmat)
-
-  # Computing the correlation matrix
-  if (scale) {
-    sigma <- stats::cov2cor(sigma)
-  }
 
   # Simulating data from multivariate normal distribution
   x <- MASS::mvrnorm(n, rep(0, ncol(sigma)), sigma)

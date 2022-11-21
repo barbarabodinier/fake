@@ -14,7 +14,6 @@ SimulateStructural(
   v_sign = c(-1, 1),
   continuous = TRUE,
   ev_manifest = 0.8,
-  scale = TRUE,
   output_matrices = FALSE
 )
 }
@@ -54,10 +53,6 @@ a uniform distribution between the minimum and maximum values in
 \item{ev_manifest}{vector of proportions of variance in each of the manifest
 variable that can be explained by its latent parents. Only used if
 \code{n_manifest} is provided.}
-
-\item{scale}{logical indicating if the true mean is zero and true variance is
-one for all simulated variables. The observed mean and variance may be
-slightly off by chance.}
 
 \item{output_matrices}{logical indicating if the true path coefficients,
 residual variances, and precision and (partial) correlation matrices should
