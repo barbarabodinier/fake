@@ -967,6 +967,11 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'
 #' @inheritParams SimulateGraphical
 #' @param pk vector of the number of (latent) variables per layer.
+#' @param theta optional binary adjacency matrix of the Directed Acyclic Graph
+#'   (DAG) of causal relationships. This DAG must have a structure with layers
+#'   so that a variable can only be a parent of variable in one of the following
+#'   layers (see \code{\link{LayeredDAG}} for examples). The layers must be
+#'   provided in \code{pk}.
 #' @param n_manifest vector of the number of manifest (observed) variables
 #'   measuring each of the latent variables. If \code{n_manifest=NULL}, there
 #'   are \code{sum(pk)} manifest variables and no latent variables. Otherwise,
@@ -987,8 +992,13 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'   a uniform distribution between the minimum and maximum values in
 #'   \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
 #'   \code{v_between} (if \code{continuous=FALSE}).
+#' @param ev vector of proportions of variance in each of the (latent) variables
+#'   that can be explained by its parents. If there are no latent variables (if
+#'   \code{n_manifest=NULL}), these are the proportions of explained variances
+#'   in the manifest variables. Otherwise (if \code{n_manifest} is provided),
+#'   these are the proportions of explained variances in the latent variables.
 #' @param ev_manifest vector of proportions of variance in each of the manifest
-#'   variable that can be explained by its latent parents. Only used if
+#'   variable that can be explained by its latent parent. Only used if
 #'   \code{n_manifest} is provided.
 #' @param output_matrices logical indicating if the true path coefficients,
 #'   residual variances, and precision and (partial) correlation matrices should
@@ -1031,6 +1041,26 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'   )
 #' }
 #'
+#' # Choosing the proportions of explained variances for endogenous variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 1000,
+#'   pk = c(2, 3),
+#'   nu_between = 1,
+#'   ev = c(NA, NA, 0.5, 0.7, 0.9),
+#'   output_matrices = TRUE
+#' )
+#'
+#' # Checking expected proportions of explained variances
+#' (simul$sigma["x3", "x3"] - simul$Smat["x3", "x3"]) / simul$sigma["x3", "x3"]
+#' (simul$sigma["x4", "x4"] - simul$Smat["x4", "x4"]) / simul$sigma["x4", "x4"]
+#' (simul$sigma["x5", "x5"] - simul$Smat["x5", "x5"]) / simul$sigma["x5", "x5"]
+#'
+#' # Checking observed proportions of explained variances (R-squared)
+#' summary(lm(simul$data[, 3] ~ simul$data[, which(simul$theta[, 3] != 0)]))
+#' summary(lm(simul$data[, 4] ~ simul$data[, which(simul$theta[, 4] != 0)]))
+#' summary(lm(simul$data[, 5] ~ simul$data[, which(simul$theta[, 5] != 0)]))
+#'
 #' # Simulation including latent and manifest variables
 #' set.seed(1)
 #' simul <- SimulateStructural(
@@ -1049,6 +1079,23 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #'   plot(mygraph)
 #' }
 #'
+#' # Choosing proportions of explained variances for latent and manifest variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 100,
+#'   pk = c(3, 2),
+#'   n_manifest = c(2, 3, 2, 1, 2),
+#'   ev = c(NA, NA, NA, 0.7, 0.9),
+#'   ev_manifest = 0.8,
+#'   output_matrices = TRUE
+#' )
+#' plot(simul)
+#'
+#' # Checking expected proportions of explained variances
+#' (simul$sigma_full["f4", "f4"] - simul$Smat["f4", "f4"]) / simul$sigma_full["f4", "f4"]
+#' (simul$sigma_full["f5", "f5"] - simul$Smat["f5", "f5"]) / simul$sigma_full["f5", "f5"]
+#' (simul$sigma_full["x1", "x1"] - simul$Smat["x1", "x1"]) / simul$sigma_full["x1", "x1"]
+#'
 #' @export
 SimulateStructural <- function(n = 100,
                                pk = c(5, 5, 5),
@@ -1058,6 +1105,7 @@ SimulateStructural <- function(n = 100,
                                v_between = c(0.5, 1),
                                v_sign = c(-1, 1),
                                continuous = TRUE,
+                               ev = 0.5,
                                ev_manifest = 0.8,
                                output_matrices = FALSE) {
   # Simulation of layered directed acyclic graph between latent variables
@@ -1069,6 +1117,10 @@ SimulateStructural <- function(n = 100,
       nu_between = nu_between
     )
     theta[lower.tri(theta)] <- 0
+  } else {
+    if (ncol(theta) != sum(pk)) {
+      stop("Arguments 'theta' and 'pk' are not compatible. Please make sure that 'theta' is the adjacency matrix of a DAG with layers and that 'pk' encodes this layer structure.")
+    }
   }
 
   # Addition of manifest variables for each latent variable
@@ -1091,6 +1143,21 @@ SimulateStructural <- function(n = 100,
   } else {
     p_latent <- 0
   }
+
+  # Checking the length of proportions of explained variances
+  print(length(ev))
+  print(sum(pk))
+  if (length(ev) != sum(pk)) {
+    ev <- rep(ev[1], sum(pk))
+  }
+  if (!is.null(n_manifest)) {
+    if (length(ev_manifest) != sum(n_manifest)) {
+      ev_manifest <- rep(ev_manifest[1], sum(n_manifest))
+    }
+    ev <- c(ev_manifest, ev)
+  }
+
+  # Setting p as the total number of variables (latent and manifest)
   p <- pk <- ncol(theta)
 
   # Defining row and column names
@@ -1119,14 +1186,26 @@ SimulateStructural <- function(n = 100,
   Imat <- diag(p)
   rownames(Imat) <- colnames(Imat) <- colnames(Amat)
 
-  # Defining residual variance
+  # Initialising residual covariance matrix S
   Smat <- diag(p)
   rownames(Smat) <- colnames(Smat) <- colnames(Amat)
 
-  # Defining filter matrix
-  Fmat <- Imat[seq(1, p - p_latent), ]
+  # Defining residual variances to reach desired proportions of explained variances
+  if (is.null(n_manifest)) {
+    ids_linked <- ids_manifest
+  } else {
+    ids_linked <- ids_latent
+  }
+  for (j in ids_linked) {
+    if (sum(theta[, j] > 0)) {
+      tmppreds <- which(theta[, j] == 1)
+      var_yhat <- sum((Amat[j, tmppreds])^2 * diag(Smat)[tmppreds])
+      Smat[j, j] <- var_yhat * (1 - ev[j]) / ev[j]
+    }
+  }
 
-  if (p_latent > 0) {
+  # Defining residual variances of manifest variables (in the presence of latent variables)
+  if (!is.null(n_manifest)) {
     # Computing the covariance matrix for latent variables only
     sigma_latent <- solve(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]) %*% Smat[ids_latent, ids_latent] %*% solve(t(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]))
 
@@ -1134,13 +1213,22 @@ SimulateStructural <- function(n = 100,
     diag(Smat)[ids_manifest] <- (apply(Amat[ids_manifest, ], 1, sum)^2) * rep.int(diag(sigma_latent), times = n_manifest) * (1 - ev_manifest) / ev_manifest
   }
 
+  # Defining filter matrix
+  Fmat <- Imat[seq(1, p - p_latent), ]
+
   # Computing corresponding covariance matrix (p.d. by definition)
-  sigma <- Fmat %*% solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat)) %*% t(Fmat)
+  sigma_full <- solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat))
+
+  # Computing corresponding covariance matrix (p.d. by definition)
+  sigma <- Fmat %*% sigma_full %*% t(Fmat)
 
   # Simulating data from multivariate normal distribution
   x <- MASS::mvrnorm(n, rep(0, ncol(sigma)), sigma)
   colnames(x) <- colnames(theta)[ids_manifest]
   rownames(x) <- paste0("obs", 1:nrow(x))
+
+  # Assigning names to vector of proportions of explained variances
+  names(ev) <- colnames(theta)
 
   # Defining the class of theta
   class(theta) <- c("matrix", "adjacency_matrix")
@@ -1148,12 +1236,15 @@ SimulateStructural <- function(n = 100,
   # Preparing the output
   if (output_matrices) {
     out <- list(
-      data = x, theta = theta,
+      data = x, theta = theta, ev = ev,
       Amat = Amat, Smat = Smat, Fmat = Fmat,
       sigma = sigma
     )
+    if (!is.null(n_manifest)) {
+      out <- c(out, list(sigma_full = sigma_full))
+    }
   } else {
-    out <- list(data = x, theta = theta)
+    out <- list(data = x, theta = theta, ev = ev)
   }
 
   # Defining the class
