@@ -1145,8 +1145,6 @@ SimulateStructural <- function(n = 100,
   }
 
   # Checking the length of proportions of explained variances
-  print(length(ev))
-  print(sum(pk))
   if (length(ev) != sum(pk)) {
     ev <- rep(ev[1], sum(pk))
   }
