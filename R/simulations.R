@@ -1052,9 +1052,9 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 #' )
 #'
 #' # Checking expected proportions of explained variances
-#' (simul$sigma["x3", "x3"] - simul$Smat["x3", "x3"]) / simul$sigma["x3", "x3"]
-#' (simul$sigma["x4", "x4"] - simul$Smat["x4", "x4"]) / simul$sigma["x4", "x4"]
-#' (simul$sigma["x5", "x5"] - simul$Smat["x5", "x5"]) / simul$sigma["x5", "x5"]
+#' 1 - simul$Smat["x3", "x3"] / simul$sigma["x3", "x3"]
+#' 1 - simul$Smat["x4", "x4"] / simul$sigma["x4", "x4"]
+#' 1 - simul$Smat["x5", "x5"] / simul$sigma["x5", "x5"]
 #'
 #' # Checking observed proportions of explained variances (R-squared)
 #' summary(lm(simul$data[, 3] ~ simul$data[, which(simul$theta[, 3] != 0)]))
@@ -1195,9 +1195,15 @@ SimulateStructural <- function(n = 100,
     ids_linked <- ids_latent
   }
   for (j in ids_linked) {
+    print(j)
+    tmpsigma <- solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat))
+    print(Smat)
+    print(tmpsigma)
     if (sum(theta[, j] > 0)) {
       tmppreds <- which(theta[, j] == 1)
-      var_yhat <- sum((Amat[j, tmppreds])^2 * diag(Smat)[tmppreds])
+      tmpsigma <- tmpsigma[tmppreds, tmppreds]
+      tmpprod <- t(Amat[j, tmppreds, drop = FALSE]) %*% Amat[j, tmppreds, drop = FALSE]
+      var_yhat <- sum(diag(tmpprod) * diag(tmpsigma)) + 2 * sum(tmpprod[upper.tri(tmpprod)] * tmpsigma[upper.tri(tmpsigma)])
       Smat[j, j] <- var_yhat * (1 - ev[j]) / ev[j]
     }
   }

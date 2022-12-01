@@ -116,9 +116,9 @@ simul <- SimulateStructural(
 )
 
 # Checking expected proportions of explained variances
-(simul$sigma["x3", "x3"] - simul$Smat["x3", "x3"]) / simul$sigma["x3", "x3"]
-(simul$sigma["x4", "x4"] - simul$Smat["x4", "x4"]) / simul$sigma["x4", "x4"]
-(simul$sigma["x5", "x5"] - simul$Smat["x5", "x5"]) / simul$sigma["x5", "x5"]
+1 - simul$Smat["x3", "x3"] / simul$sigma["x3", "x3"]
+1 - simul$Smat["x4", "x4"] / simul$sigma["x4", "x4"]
+1 - simul$Smat["x5", "x5"] / simul$sigma["x5", "x5"]
 
 # Checking observed proportions of explained variances (R-squared)
 summary(lm(simul$data[, 3] ~ simul$data[, which(simul$theta[, 3] != 0)]))
