@@ -1195,10 +1195,7 @@ SimulateStructural <- function(n = 100,
     ids_linked <- ids_latent
   }
   for (j in ids_linked) {
-    print(j)
     tmpsigma <- solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat))
-    print(Smat)
-    print(tmpsigma)
     if (sum(theta[, j] > 0)) {
       tmppreds <- which(theta[, j] == 1)
       tmpsigma <- tmpsigma[tmppreds, tmppreds]
