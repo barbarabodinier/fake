@@ -121,8 +121,7 @@ summary(simul)
 
 # Data simulation
 set.seed(1)
-simul <- SimulateRegression(pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
-print(simul)
+simul <- SimulateRegression(n = 1000, pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
 summary(simul)
 
 # Comparing with estimated proportion of explained variance

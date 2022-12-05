@@ -502,8 +502,7 @@ SimulateComponents <- function(n = 100, pk = c(10, 10),
 #'
 #' # Data simulation
 #' set.seed(1)
-#' simul <- SimulateRegression(pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
-#' print(simul)
+#' simul <- SimulateRegression(n = 1000, pk = 15, q = 3, ev_xy = c(0.9, 0.5, 0.2))
 #' summary(simul)
 #'
 #' # Comparing with estimated proportion of explained variance
@@ -600,6 +599,9 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
       nrow = nrow(beta), ncol = ncol(beta)
     )
   }
+  beta <- beta * matrix(base::sample(beta_sign, size = nrow(beta) * ncol(beta), replace = TRUE),
+    nrow = nrow(beta), ncol = ncol(beta)
+  )
 
   # Sampling outcome data
   ydata <- matrix(NA, ncol = q, nrow = nrow(xdata))
