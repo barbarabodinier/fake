@@ -17,7 +17,7 @@ commit](https://img.shields.io/github/last-commit/barbarabodinier/fake?logo=GitH
 
 > This R package can be used to generate artificial data conditionally
 > on pre-specified (simulated or user-defined) relationships between the
-> simulated variables/observations. Each observation is drawn from a
+> variables and/or observations. Each observation is drawn from a
 > multivariate Normal distribution where the mean vector and covariance
 > matrix reflect the desired relationships. Outputs can be used to
 > evaluate the performances of variable selection, graphical modelling,
@@ -91,18 +91,18 @@ outputs from the main functions.
 
 ## Reference
 
--   Barbara Bodinier, Sarah Filippi, Therese Haugdahl Nost, Julien
-    Chiquet and Marc Chadeau-Hyam. Automated calibration for stability
-    selection in penalised regression and graphical models: a
-    multi-OMICs network application exploring the molecular response to
-    tobacco smoking. (2021) arXiv.
-    [link](https://doi.org/10.48550/arXiv.2106.02521)
+- Barbara Bodinier, Sarah Filippi, Therese Haugdahl Nost, Julien Chiquet
+  and Marc Chadeau-Hyam. Automated calibration for stability selection
+  in penalised regression and graphical models: a multi-OMICs network
+  application exploring the molecular response to tobacco
+  smoking. (2021) arXiv.
+  [link](https://doi.org/10.48550/arXiv.2106.02521)
 
 ## Other resources
 
--   R scripts to reproduce the simulation study (Bodinier et al. 2021)
-    conducted using the functions in **fake**
-    [link](https://github.com/barbarabodinier/stability_selection)
+- R scripts to reproduce the simulation study (Bodinier et al. 2021)
+  conducted using the functions in **fake**
+  [link](https://github.com/barbarabodinier/stability_selection)
 
--   R package **sharp** for stability selection and consensus clustering
-    [link](https://github.com/barbarabodinier/sharp)
+- R package **sharp** for stability selection and consensus clustering
+  [link](https://github.com/barbarabodinier/sharp)
