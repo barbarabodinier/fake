@@ -7,25 +7,10 @@
 SimulateClustering(
   n = c(10, 10),
   pk = 10,
-  adjacency = NULL,
+  sigma = NULL,
   theta_xc = NULL,
   nu_xc = 1,
   ev_xc = 0.5,
-  implementation = HugeAdjacency,
-  topology = "random",
-  nu_within = 0,
-  nu_between = NULL,
-  nu_mat = NULL,
-  v_within = c(0.5, 1),
-  v_between = c(0, 0.1),
-  v_sign = c(-1, 1),
-  continuous = TRUE,
-  pd_strategy = "diagonally_dominant",
-  ev_xx = NULL,
-  scale_ev = TRUE,
-  u_list = c(1e-10, 1),
-  tol = .Machine$double.eps^0.25,
-  scale = TRUE,
   output_matrices = FALSE
 )
 }
@@ -35,8 +20,7 @@ total number of items is \code{sum(n)}.}
 
 \item{pk}{vector of the number of attributes in the simulated data.}
 
-\item{adjacency}{optional binary and symmetric adjacency matrix encoding the
-conditional independence structure between attributes.}
+\item{sigma}{optional within-cluster correlation matrix.}
 
 \item{theta_xc}{optional binary matrix encoding which attributes (columns)
 contribute to the clustering structure between which clusters (rows). If
@@ -47,119 +31,54 @@ with probability \code{nu_xc}.}
 over the total number of variables. Only used if \code{theta_xc} is not
 provided.}
 
-\item{ev_xc}{vector of marginal expected proportion of explained variance by
-each attribute contributing to the clustering.}
+\item{ev_xc}{vector of expected proportion of variance in each of the
+contributing attributes that can be explained by the clustering.}
 
-\item{implementation}{function for simulation of the graph. By default,
-algorithms implemented in \code{\link[huge]{huge.generator}} are used.
-Alternatively, a user-defined function can be used. It must take \code{pk},
-\code{topology} and \code{nu} as arguments and return a
-\code{(sum(pk)*(sum(pk)))} binary and symmetric matrix for which diagonal
-entries are all equal to zero. This function is only applied if
-\code{theta} is not provided.}
-
-\item{topology}{topology of the simulated graph. If using
-\code{implementation=HugeAdjacency}, possible values are listed for the
-argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
-"random", "hub", "cluster", "band" and "scale-free".}
-
-\item{nu_within}{probability of having an edge between two nodes belonging to
-the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
-the expected density of the graph. If \code{implementation=HugeAdjacency},
-this argument is only used for \code{topology="random"} or
-\code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
-provided.}
-
-\item{nu_between}{probability of having an edge between two nodes belonging
-to different groups, as defined in \code{pk}. By default, the same density
-is used for within and between blocks (\code{nu_within}=\code{nu_between}).
-Only used if \code{length(pk)>1}. Only used if \code{nu_mat} is not
-provided.}
-
-\item{nu_mat}{matrix of probabilities of having an edge between nodes
-belonging to a given pair of node groups defined in \code{pk}.}
-
-\item{v_within}{vector defining the (range of) nonzero entries in the
-diagonal blocks of the precision matrix. These values must be between -1
-and 1 if \code{pd_strategy="min_eigenvalue"}. If \code{continuous=FALSE},
-\code{v_within} is the set of possible precision values. If
-\code{continuous=TRUE}, \code{v_within} is the range of possible precision
-values.}
-
-\item{v_between}{vector defining the (range of) nonzero entries in the
-off-diagonal blocks of the precision matrix. This argument is the same as
-\code{v_within} but for off-diagonal blocks. It is only used if
-\code{length(pk)>1}.}
-
-\item{v_sign}{vector of possible signs for precision matrix entries. Possible
-inputs are: \code{-1} for positive partial correlations, \code{1} for
-negative partial correlations, or \code{c(-1, 1)} for both positive and
-negative partial correlations.}
-
-\item{continuous}{logical indicating whether to sample precision values from
-a uniform distribution between the minimum and maximum values in
-\code{v_within} (diagonal blocks) or \code{v_between} (off-diagonal blocks)
-(if \code{continuous=TRUE}) or from proposed values in \code{v_within}
-(diagonal blocks) or \code{v_between} (off-diagonal blocks) (if
-\code{continuous=FALSE}).}
-
-\item{pd_strategy}{method to ensure that the generated precision matrix is
-positive definite (and hence can be a covariance matrix). If
-\code{pd_strategy="diagonally_dominant"}, the precision matrix is made
-diagonally dominant by setting the diagonal entries to the sum of absolute
-values on the corresponding row and a constant u. If
-\code{pd_strategy="min_eigenvalue"}, diagonal entries are set to the sum of
-the absolute value of the smallest eigenvalue of the precision matrix with
-zeros on the diagonal and a constant u.}
-
-\item{ev_xx}{expected proportion of explained variance by the first Principal
-Component (PC1) of a Principal Component Analysis applied on the
-predictors. This is the largest eigenvalue of the correlation (if
-\code{scale=TRUE}) or covariance (if \code{scale=FALSE}) matrix divided by
-the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the constant u
-is chosen by maximising the contrast of the correlation matrix.}
-
-\item{scale_ev}{logical indicating if the proportion of explained variance by
-PC1 should be computed from the correlation (\code{scale_ev=TRUE}) or
-covariance (\code{scale_ev=FALSE}) matrix. If \code{scale_ev=TRUE}, the
-correlation matrix is used as parameter of the multivariate normal
-distribution.}
-
-\item{u_list}{vector with two numeric values defining the range of values to
-explore for constant u.}
-
-\item{tol}{accuracy for the search of parameter u as defined in
-\code{\link[stats]{optimise}}.}
-
-\item{scale}{logical indicating if the true mean is zero and true variance is
-one for all simulated variables. The observed mean and variance may be
-slightly off by chance.}
-
-\item{output_matrices}{logical indicating if the true precision and (partial)
-correlation matrices should be included in the output.}
+\item{output_matrices}{logical indicating if the cluster and attribute
+specific means and cluster specific covariance matrix should be included
+in the output.}
 }
 \value{
 A list with: \item{data}{simulated data with \code{sum(n)}
   observation and \code{sum(pk)} variables} \item{theta}{simulated (true)
-  cluster membership.} \item{adjacency}{adjacency matrix of the graph
-  encoding the conditional independence structure between variables.}
-  \item{theta_xc}{binary vector encoding variables contributing to the
-  clustering structure.} \item{ev}{vector of marginal expected proportions of
-  explained variance for each variable.} \item{omega}{simulated (true)
-  precision matrix. Only returned if \code{output_matrices=TRUE}.}
-  \item{phi}{simulated (true) partial correlation matrix. Only returned if
+  cluster membership.} \item{theta_xc}{binary vector encoding variables
+  contributing to the clustering structure.} \item{ev}{vector of marginal
+  expected proportions of explained variance for each variable.}
+  \item{mu_mixture}{simulated (true) cluster-specific means. Only returned if
   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
-  matrix. Only returned if \code{output_matrices=TRUE}.} \item{u}{value of
-  the constant u used for the simulation of \code{omega}. Only returned if
-  \code{output_matrices=TRUE}.} \item{mu_mixture}{simulated (true)
-  cluster-specific means. Only returned if \code{output_matrices=TRUE}.}
+  matrix. Only returned if \code{output_matrices=TRUE}.}
 }
 \description{
 Simulates mixture multivariate Normal data with clusters of items (rows)
 sharing similar profiles along (a subset of) attributes (columns).
 }
+\details{
+The data is simulated from a Gaussian mixture where for all \eqn{i
+  \in {1, \dots, n}}:
+
+  \eqn{Z_i i.i.d. ~ M(1, \kappa)}
+
+  \eqn{X_i | Z_i indep. ~ N_p(\mu_{Z_i}, \Sigma)}
+
+  where \eqn{M(1, \kappa)} is the multinomial distribution with parameters 1
+  and \eqn{\kappa}, the vector of length \eqn{G} (the number of clusters)
+  with probabilities of belonging to each of the clusters, and
+  \eqn{N_p(\mu_{Z_i}, \Sigma)} is the multivariate Normal distribution with a
+  mean vector \eqn{\mu_{Z_i}} that depends on the cluster membership encoded
+  in \eqn{Z_i} and the same covariance matrix \eqn{\Sigma} within all \eqn{G}
+  clusters.
+
+  The mean vectors \eqn{\mu_{g}, g \in {1, \dots G}} are simulated so that
+  the desired proportion of variance in each of attributes explained by the
+  clustering (argument \code{ev_xc}) is reached.
+
+  The covariance matrix \eqn{\Sigma} is obtained by re-scaling a correlation
+  matrix (argument \code{sigma}) to ensure that the desired proportions of
+  explained variances by the clustering (argument \code{ev_xc}) are reached.
+}
 \examples{
+oldpar <- par(no.readonly = TRUE)
+par(mar = rep(7, 4))
 
 ## Example with 3 clusters
 
@@ -192,15 +111,14 @@ print(simul)
 plot(simul)
 
 # Visualisation of the data
-par(mar = c(5, 5, 5, 5))
 Heatmap(
   mat = simul$data,
-  colours = c("navy", "white", "red")
+  col = c("navy", "white", "red")
 )
 simul$ev # marginal proportions of explained variance
 
 # Visualisation along contributing variables
-plot(simul$data[, 1:2], col = simul$theta)
+plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 
 
 ## Example with different levels of separation
@@ -212,10 +130,9 @@ simul <- SimulateClustering(
   theta_xc = c(1, 1, rep(0, 8)),
   ev_xc = c(0.99, 0.5, rep(0, 8))
 )
-simul$ev
 
 # Visualisation along contributing variables
-plot(simul$data[, 1:2], col = simul$theta)
+plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 
 
 ## Example with correlated contributors
@@ -225,23 +142,28 @@ pk <- 10
 adjacency <- matrix(0, pk, pk)
 adjacency[1, 2] <- adjacency[2, 1] <- 1
 set.seed(1)
-simul <- SimulateClustering(
-  n = c(200, 100, 150), pk = pk,
-  theta_xc = c(1, 1, rep(0, 8)),
-  ev_xc = c(0.9, 0.8, rep(0, 8)),
-  adjacency = adjacency,
+sigma <- SimulateCorrelation(
+  pk = pk,
+  theta = adjacency,
   pd_strategy = "min_eigenvalue",
   v_within = 0.6, v_sign = -1
+)$sigma
+simul <- SimulateClustering(
+  n = c(200, 100, 150), pk = pk, sigma = sigma,
+  theta_xc = c(1, 1, rep(0, 8)),
+  ev_xc = c(0.9, 0.8, rep(0, 8))
 )
 
 # Visualisation along contributing variables
-plot(simul$data[, 1:2], col = simul$theta)
+plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 
 # Checking marginal proportions of explained variance
 mymodel <- lm(simul$data[, 1] ~ as.factor(simul$theta))
 summary(mymodel)$r.squared
 mymodel <- lm(simul$data[, 2] ~ as.factor(simul$theta))
 summary(mymodel)$r.squared
+
+par(oldpar)
 
 }
 \seealso{
@@ -250,6 +172,7 @@ summary(mymodel)$r.squared
 Other simulation functions: 
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateComponents}()},
+\code{\link{SimulateCorrelation}()},
 \code{\link{SimulateGraphical}()},
 \code{\link{SimulateRegression}()}
 }

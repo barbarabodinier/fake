@@ -154,6 +154,7 @@ Other simulation functions:
 \code{\link{SimulateAdjacency}()},
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
+\code{\link{SimulateCorrelation}()},
 \code{\link{SimulateGraphical}()}
 }
 \concept{simulation functions}

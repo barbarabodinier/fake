@@ -86,8 +86,7 @@
 #' @param ... additional arguments passed to the graph simulation function
 #'   provided in \code{implementation}.
 #'
-#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
-#'   \code{\link{Contrast}}
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}}
 #'
 #' @family simulation functions
 #'
@@ -121,6 +120,9 @@
 #' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
+#' oldpar <- par(no.readonly = TRUE)
+#' par(mar = rep(7, 4))
+#'
 #' # Simulation of random graph with 50 nodes
 #' set.seed(1)
 #' simul <- SimulateGraphical(n = 100, pk = 50, topology = "random", nu_within = 0.05)
@@ -198,6 +200,9 @@
 #'   col = c("darkblue", "white", "firebrick3"),
 #'   legend_range = c(-1, 1), legend_length = 50, legend = FALSE
 #' )
+#'
+#' par(oldpar)
+#'
 #' @export
 SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
                               implementation = HugeAdjacency, topology = "random",
@@ -268,6 +273,139 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
 
   # Defining the class
   class(out) <- "simulation_graphical_model"
+
+  return(out)
+}
+
+
+#' Simulation of a correlation matrix
+#'
+#' Simulates a correlation matrix. This is done in three steps with (i) the
+#' simulation of an undirected graph encoding conditional independence, (ii) the
+#' simulation of a (positive definite) precision matrix given the graph, and
+#' (iii) the re-scaling of the inverse of the precision matrix.
+#'
+#' @inheritParams SimulateGraphical
+#'
+#' @details In Step 1, the conditional independence structure between the
+#'   variables is simulated. This is done using \code{\link{SimulateAdjacency}}.
+#'
+#'   In Step 2, the precision matrix is simulated using
+#'   \code{\link{SimulatePrecision}} so that (i) its nonzero entries correspond
+#'   to edges in the graph simulated in Step 1, and (ii) it is positive definite
+#'   (see \code{\link{MakePositiveDefinite}}).
+#'
+#'   In Step 3, the covariance is calculated as the inverse of the precision
+#'   matrix. The correlation matrix is then obtained by re-scaling the
+#'   covariance matrix (see \code{\link[stats]{cov2cor}}).
+#'
+#' @family simulation functions
+#'
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}}
+#'
+#' @return A list with: \item{sigma}{simulated correlation matrix.}
+#'   \item{omega}{simulated precision matrix. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{theta}{adjacency matrix of the
+#'   simulated graph. Only returned if \code{output_matrices=TRUE}.}
+#'
+#' @examples
+#' oldpar <- par(no.readonly = TRUE)
+#' par(mar = rep(7, 4))
+#'
+#' # Random correlation matrix
+#' set.seed(1)
+#' simul <- SimulateCorrelation(pk = 10)
+#' Heatmap(simul$sigma,
+#'   col = c("navy", "white", "darkred"),
+#'   text = TRUE, format = "f", digits = 2,
+#'   legend_range = c(-1, 1)
+#' )
+#'
+#' # Correlation matrix with homogeneous block structure
+#' set.seed(1)
+#' simul <- SimulateCorrelation(
+#'   pk = c(5, 5),
+#'   nu_within = 1,
+#'   nu_between = 0,
+#'   v_sign = -1,
+#'   v_within = 1
+#' )
+#' Heatmap(simul$sigma,
+#'   col = c("navy", "white", "darkred"),
+#'   text = TRUE, format = "f", digits = 2,
+#'   legend_range = c(-1, 1)
+#' )
+#'
+#' # Correlation matrix with heterogeneous block structure
+#' set.seed(1)
+#' simul <- SimulateCorrelation(
+#'   pk = c(5, 5),
+#'   nu_within = 0.5,
+#'   nu_between = 0,
+#'   v_sign = -1
+#' )
+#' Heatmap(simul$sigma,
+#'   col = c("navy", "white", "darkred"),
+#'   text = TRUE, format = "f", digits = 2,
+#'   legend_range = c(-1, 1)
+#' )
+#'
+#' par(oldpar)
+#'
+#' @export
+SimulateCorrelation <- function(pk = 10, theta = NULL,
+                                implementation = HugeAdjacency, topology = "random",
+                                nu_within = 0.1, nu_between = NULL, nu_mat = NULL,
+                                v_within = c(0.5, 1), v_between = c(0.1, 0.2),
+                                v_sign = c(-1, 1), continuous = TRUE,
+                                pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
+                                u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25,
+                                output_matrices = FALSE, ...) {
+  # Defining number of nodes
+  p <- sum(pk)
+  if (!is.null(theta)) {
+    if (ncol(theta) != p) {
+      p <- pk <- ncol(theta)
+    }
+  }
+
+  # Defining the between-block density
+  if (is.null(nu_between)) {
+    nu_between <- nu_within
+  }
+
+  # Building adjacency matrix
+  if (is.null(theta)) {
+    theta <- SimulateAdjacency(
+      pk = pk,
+      implementation = implementation, topology = topology,
+      nu_within = nu_within, nu_between = nu_between, nu_mat = nu_mat, ...
+    )
+  }
+
+  # Simulation of a precision matrix
+  out <- SimulatePrecision(
+    pk = pk, theta = theta,
+    v_within = v_within, v_between = v_between,
+    v_sign = v_sign, continuous = continuous,
+    pd_strategy = pd_strategy, ev_xx = ev_xx, scale = scale_ev,
+    u_list = u_list, tol = tol
+  )
+  omega <- out$omega
+
+  # Computing the correlation matrix
+  sigma <- stats::cov2cor(solve(omega))
+
+  # Preparing the output
+  if (output_matrices) {
+    out <- list(
+      sigma = sigma,
+      omega = omega,
+      theta = theta
+    )
+  } else {
+    out <- list(sigma = sigma)
+  }
 
   return(out)
 }
@@ -667,12 +805,10 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #' Simulates mixture multivariate Normal data with clusters of items (rows)
 #' sharing similar profiles along (a subset of) attributes (columns).
 #'
-#' @inheritParams SimulateGraphical
 #' @param n vector of the number of items per cluster in the simulated data. The
 #'   total number of items is \code{sum(n)}.
 #' @param pk vector of the number of attributes in the simulated data.
-#' @param adjacency optional binary and symmetric adjacency matrix encoding the
-#'   conditional independence structure between attributes.
+#' @param sigma optional within-cluster correlation matrix.
 #' @param theta_xc optional binary matrix encoding which attributes (columns)
 #'   contribute to the clustering structure between which clusters (rows). If
 #'   \code{theta_xc=NULL}, variables contributing to the clustering are sampled
@@ -680,34 +816,50 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #' @param nu_xc expected proportion of variables contributing to the clustering
 #'   over the total number of variables. Only used if \code{theta_xc} is not
 #'   provided.
-#' @param ev_xc vector of marginal expected proportion of explained variance by
-#'   each attribute contributing to the clustering.
-#' @param ev_xx expected proportion of explained variance by the first Principal
-#'   Component (PC1) of a Principal Component Analysis applied on the
-#'   predictors. This is the largest eigenvalue of the correlation (if
-#'   \code{scale=TRUE}) or covariance (if \code{scale=FALSE}) matrix divided by
-#'   the sum of eigenvalues. If \code{ev_xx=NULL} (the default), the constant u
-#'   is chosen by maximising the contrast of the correlation matrix.
+#' @param ev_xc vector of expected proportion of variance in each of the
+#'   contributing attributes that can be explained by the clustering.
+#' @param output_matrices logical indicating if the cluster and attribute
+#'   specific means and cluster specific covariance matrix should be included
+#'   in the output.
+#'
+#' @details The data is simulated from a Gaussian mixture where for all \eqn{i
+#'   \in {1, \dots, n}}:
+#'
+#'   \eqn{Z_i i.i.d. ~ M(1, \kappa)}
+#'
+#'   \eqn{X_i | Z_i indep. ~ N_p(\mu_{Z_i}, \Sigma)}
+#'
+#'   where \eqn{M(1, \kappa)} is the multinomial distribution with parameters 1
+#'   and \eqn{\kappa}, the vector of length \eqn{G} (the number of clusters)
+#'   with probabilities of belonging to each of the clusters, and
+#'   \eqn{N_p(\mu_{Z_i}, \Sigma)} is the multivariate Normal distribution with a
+#'   mean vector \eqn{\mu_{Z_i}} that depends on the cluster membership encoded
+#'   in \eqn{Z_i} and the same covariance matrix \eqn{\Sigma} within all \eqn{G}
+#'   clusters.
+#'
+#'   The mean vectors \eqn{\mu_{g}, g \in {1, \dots G}} are simulated so that
+#'   the desired proportion of variance in each of attributes explained by the
+#'   clustering (argument \code{ev_xc}) is reached.
+#'
+#'   The covariance matrix \eqn{\Sigma} is obtained by re-scaling a correlation
+#'   matrix (argument \code{sigma}) to ensure that the desired proportions of
+#'   explained variances by the clustering (argument \code{ev_xc}) are reached.
 #'
 #' @seealso \code{\link{MakePositiveDefinite}}
 #' @family simulation functions
 #'
 #' @return A list with: \item{data}{simulated data with \code{sum(n)}
 #'   observation and \code{sum(pk)} variables} \item{theta}{simulated (true)
-#'   cluster membership.} \item{adjacency}{adjacency matrix of the graph
-#'   encoding the conditional independence structure between variables.}
-#'   \item{theta_xc}{binary vector encoding variables contributing to the
-#'   clustering structure.} \item{ev}{vector of marginal expected proportions of
-#'   explained variance for each variable.} \item{omega}{simulated (true)
-#'   precision matrix. Only returned if \code{output_matrices=TRUE}.}
-#'   \item{phi}{simulated (true) partial correlation matrix. Only returned if
+#'   cluster membership.} \item{theta_xc}{binary vector encoding variables
+#'   contributing to the clustering structure.} \item{ev}{vector of marginal
+#'   expected proportions of explained variance for each variable.}
+#'   \item{mu_mixture}{simulated (true) cluster-specific means. Only returned if
 #'   \code{output_matrices=TRUE}.} \item{sigma}{simulated (true) covariance
-#'   matrix. Only returned if \code{output_matrices=TRUE}.} \item{u}{value of
-#'   the constant u used for the simulation of \code{omega}. Only returned if
-#'   \code{output_matrices=TRUE}.} \item{mu_mixture}{simulated (true)
-#'   cluster-specific means. Only returned if \code{output_matrices=TRUE}.}
+#'   matrix. Only returned if \code{output_matrices=TRUE}.}
 #'
 #' @examples
+#' oldpar <- par(no.readonly = TRUE)
+#' par(mar = rep(7, 4))
 #'
 #' ## Example with 3 clusters
 #'
@@ -740,15 +892,14 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #' plot(simul)
 #'
 #' # Visualisation of the data
-#' par(mar = c(5, 5, 5, 5))
 #' Heatmap(
 #'   mat = simul$data,
-#'   colours = c("navy", "white", "red")
+#'   col = c("navy", "white", "red")
 #' )
 #' simul$ev # marginal proportions of explained variance
 #'
 #' # Visualisation along contributing variables
-#' plot(simul$data[, 1:2], col = simul$theta)
+#' plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 #'
 #'
 #' ## Example with different levels of separation
@@ -760,10 +911,9 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #'   theta_xc = c(1, 1, rep(0, 8)),
 #'   ev_xc = c(0.99, 0.5, rep(0, 8))
 #' )
-#' simul$ev
 #'
 #' # Visualisation along contributing variables
-#' plot(simul$data[, 1:2], col = simul$theta)
+#' plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 #'
 #'
 #' ## Example with correlated contributors
@@ -773,17 +923,20 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #' adjacency <- matrix(0, pk, pk)
 #' adjacency[1, 2] <- adjacency[2, 1] <- 1
 #' set.seed(1)
-#' simul <- SimulateClustering(
-#'   n = c(200, 100, 150), pk = pk,
-#'   theta_xc = c(1, 1, rep(0, 8)),
-#'   ev_xc = c(0.9, 0.8, rep(0, 8)),
-#'   adjacency = adjacency,
+#' sigma <- SimulateCorrelation(
+#'   pk = pk,
+#'   theta = adjacency,
 #'   pd_strategy = "min_eigenvalue",
 #'   v_within = 0.6, v_sign = -1
+#' )$sigma
+#' simul <- SimulateClustering(
+#'   n = c(200, 100, 150), pk = pk, sigma = sigma,
+#'   theta_xc = c(1, 1, rep(0, 8)),
+#'   ev_xc = c(0.9, 0.8, rep(0, 8))
 #' )
 #'
 #' # Visualisation along contributing variables
-#' plot(simul$data[, 1:2], col = simul$theta)
+#' plot(simul$data[, 1:2], col = simul$theta, pch = 19)
 #'
 #' # Checking marginal proportions of explained variance
 #' mymodel <- lm(simul$data[, 1] ~ as.factor(simul$theta))
@@ -791,16 +944,11 @@ SimulateRegression <- function(n = 100, pk = 10, xdata = NULL,
 #' mymodel <- lm(simul$data[, 2] ~ as.factor(simul$theta))
 #' summary(mymodel)$r.squared
 #'
+#' par(oldpar)
+#'
 #' @export
-SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
+SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
                                theta_xc = NULL, nu_xc = 1, ev_xc = 0.5,
-                               implementation = HugeAdjacency, topology = "random",
-                               nu_within = 0, nu_between = NULL, nu_mat = NULL,
-                               v_within = c(0.5, 1), v_between = c(0, 0.1),
-                               v_sign = c(-1, 1), continuous = TRUE,
-                               pd_strategy = "diagonally_dominant", ev_xx = NULL, scale_ev = TRUE,
-                               u_list = c(1e-10, 1), tol = .Machine$double.eps^0.25,
-                               scale = TRUE,
                                output_matrices = FALSE) {
   # Checking the inputs
   if (!is.null(theta_xc)) {
@@ -823,40 +971,19 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       }
     }
   }
-  if (!is.null(adjacency)) {
-    if (ncol(adjacency) != nrow(adjacency)) {
-      stop("Invalid input for argument 'adjacency'. It must be a square matrix (same number of rows and columns).")
-    }
-    if (is.null(pk)) {
-      pk <- ncol(theta_xc)
-    } else {
-      if (sum(pk) != ncol(adjacency)) {
-        warning("Arguments 'pk' and 'theta_xc' are not compatible. Argument 'pk' has been set to ncol('adjacency').")
-        pk <- ncol(adjacency)
-      }
-    }
-  }
 
-  # Using multi-block simulator with unconnected blocks
-  out <- SimulateGraphical(
-    n = sum(n), pk = pk, theta = adjacency,
-    implementation = implementation,
-    topology = topology,
-    nu_within = nu_within,
-    nu_between = nu_between,
-    nu_mat = nu_mat,
-    v_within = v_within,
-    v_between = v_between,
-    v_sign = v_sign,
-    continuous = continuous,
-    pd_strategy = pd_strategy,
-    ev_xx = ev_xx,
-    scale_ev = scale_ev,
-    u_list = u_list,
-    tol = tol,
-    scale = scale,
-    output_matrices = TRUE
-  )
+  # Using identity matrix if correlation is not provided
+  out <- list()
+  if (is.null(sigma)) {
+    sigma <- diag(sum(pk))
+  }
+  rownames(sigma) <- colnames(sigma) <- paste0("var", 1:ncol(sigma))
+
+  # Simulating data from multivariate normal distribution
+  x <- MASS::mvrnorm(sum(n), rep(0, sum(pk)), sigma)
+  colnames(x) <- paste0("var", 1:ncol(x))
+  rownames(x) <- paste0("obs", 1:nrow(x))
+  out$data <- x
 
   # Defining number of clusters
   nc <- length(n)
@@ -880,9 +1007,6 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
       ev_xc <- rep(ev_xc, sum(pk))
     }
   }
-
-  # Re-naming the outputs
-  out$adjacency <- out$theta
 
   # Definition of membership
   theta <- NULL
@@ -924,7 +1048,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
 
       # Ensuring that the grouping structure is going to represent desired proportion of variance
       if (any(theta_xc[, k] != 0)) {
-        mu_mat[, k] <- scale(mu_mat[, k]) * sqrt(ev_xc[k]) * sqrt(diag(out$sigma)[k])
+        mu_mat[, k] <- scale(mu_mat[, k]) * sqrt(ev_xc[k]) * sqrt(diag(sigma)[k])
         out$data[, k] <- out$data[, k] * sqrt(1 - ev_xc[k])
       }
 
@@ -938,7 +1062,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
   }
 
   # Updating the within-cluster covariance matrix
-  out$sigma <- out$sigma * sqrt(cbind(1 - ev_xc) %*% rbind(1 - ev_xc))
+  sigma <- sigma * sqrt(cbind(1 - ev_xc) %*% rbind(1 - ev_xc))
 
   # Definition of contributing variables
   colnames(theta_xc) <- colnames(out$data)
@@ -948,6 +1072,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, adjacency = NULL,
   # Returning true cluster-specific means
   if (output_matrices) {
     out$mu_mixture <- mu_mixture
+    out$sigma <- sigma
   }
 
   # Defining the class
