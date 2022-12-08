@@ -1,3 +1,4 @@
+#' @importFrom Rdpack reprompt
 #' @export
 print.simulation_graphical_model <- function(x, ...) {
   cat(paste0("Data generated from a Gaussian graphical model."))
