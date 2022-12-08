@@ -1,7 +1,7 @@
 Package: fake
 Title: Flexible Data Simulation Using the Multivariate Normal Distribution
 Version: 1.3.0
-Date: 2022-12-07
+Date: 2022-12-08
 Author: Barbara Bodinier [aut, cre]
 Maintainer: Barbara Bodinier <b.bodinier@imperial.ac.uk>
 Description: This R package can be used to generate artificial data conditionally on pre-specified (simulated or user-defined) relationships between the variables and/or observations. Each observation is drawn from a multivariate Normal distribution where the mean vector and covariance matrix reflect the desired relationships. Outputs can be used to evaluate the performances of variable selection, graphical modelling, or clustering approaches by comparing the true and estimated structures (B Bodinier et al (2021) <arXiv:2106.02521>).
