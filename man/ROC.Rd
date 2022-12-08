@@ -25,6 +25,7 @@ Area Under the Curve (AUC) by comparing the true (observed) and predicted
 status using a range of thresholds on the predicted score.
 }
 \examples{
+\donttest{
 # Data simulation
 set.seed(1)
 simul <- SimulateRegression(
@@ -38,7 +39,7 @@ fitted <- glm(simul$ydata ~ simul$xdata, family = "binomial")$fitted.values
 # Constructing the ROC curve
 roc <- ROC(predicted = fitted, observed = simul$ydata)
 plot(roc)
-
+}
 }
 \seealso{
 Other goodness of fit functions: 

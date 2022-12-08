@@ -458,6 +458,7 @@ SimulateCorrelation <- function(pk = 10, theta = NULL,
 #' @references \insertRef{ourstabilityselection}{fake}
 #'
 #' @examples
+#' \donttest{
 #' # Simulation of 3 components with high e.v.
 #' set.seed(1)
 #' simul <- SimulateComponents(pk = c(5, 3, 4), ev_xx = 0.4)
@@ -480,6 +481,7 @@ SimulateCorrelation <- function(pk = 10, theta = NULL,
 #' )
 #' plot(simul)
 #' plot(cumsum(simul$ev), ylim = c(0, 1), las = 1)
+#' }
 #' @export
 SimulateComponents <- function(n = 100, pk = c(10, 10),
                                adjacency = NULL, nu_within = 1,

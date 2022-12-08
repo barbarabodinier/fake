@@ -96,6 +96,7 @@ Rates <- function(observed, predicted, thr) {
 #' @family goodness of fit functions
 #'
 #' @examples
+#' \donttest{
 #' # Data simulation
 #' set.seed(1)
 #' simul <- SimulateRegression(
@@ -109,7 +110,7 @@ Rates <- function(observed, predicted, thr) {
 #' # Constructing the ROC curve
 #' roc <- ROC(predicted = fitted, observed = simul$ydata)
 #' plot(roc)
-#'
+#' }
 #' @export
 ROC <- function(observed, predicted, n_thr = NULL) {
   # Checking the inputs

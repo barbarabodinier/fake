@@ -202,6 +202,7 @@ plot.simulation_regression <- function(x, ...) {
 #' @seealso \code{\link{ROC}}, \code{\link{Concordance}}
 #'
 #' @examples
+#' \donttest{
 #' # Data simulation
 #' set.seed(1)
 #' simul <- SimulateRegression(
@@ -215,7 +216,7 @@ plot.simulation_regression <- function(x, ...) {
 #' # Constructing the ROC curve
 #' roc <- ROC(predicted = fitted, observed = simul$ydata)
 #' plot(roc)
-#'
+#' }
 #' @export
 plot.roc_curve <- function(x, add = FALSE, ...) {
   # Storing extra arguments

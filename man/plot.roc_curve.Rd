@@ -22,6 +22,7 @@ Plots the True Positive Rate (TPR) as a function of the False Positive Rate
 (FPR) for different thresholds in predicted probabilities.
 }
 \examples{
+\donttest{
 # Data simulation
 set.seed(1)
 simul <- SimulateRegression(
@@ -35,7 +36,7 @@ fitted <- glm(simul$ydata ~ simul$xdata, family = "binomial")$fitted.values
 # Constructing the ROC curve
 roc <- ROC(predicted = fitted, observed = simul$ydata)
 plot(roc)
-
+}
 }
 \seealso{
 \code{\link{ROC}}, \code{\link{Concordance}}
