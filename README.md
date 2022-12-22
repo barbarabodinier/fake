@@ -8,7 +8,7 @@
 [![CRAN
 status](https://www.r-pkg.org/badges/version/fake)](https://CRAN.R-project.org/package=fake)
 [![CRAN RStudio mirror
-downloads](https://cranlogs.r-pkg.org/badges/grand-total/fake?color=blue)](https://r-pkg.org/pkg/fake)
+downloads](https://cranlogs.r-pkg.org/badges/last-month/fake?color=blue)](https://r-pkg.org/pkg/fake)
 ![GitHub last
 commit](https://img.shields.io/github/last-commit/barbarabodinier/fake?logo=GitHub&style=flat-square)
 <!-- badges: end -->
