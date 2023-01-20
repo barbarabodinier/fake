@@ -12,8 +12,8 @@ ROC(observed, predicted, n_thr = NULL)
 \item{predicted}{vector of predicted scores.}
 
 \item{n_thr}{number of thresholds to use to construct the ROC curve. For
-faster computations on large data, values below \code{length(x)-1} can be
-used.}
+faster computations on large data, values below \code{length(predicted)-1}
+can be used.}
 }
 \value{
 A list with: \item{TPR}{True Positive Rate.} \item{FPR}{False
