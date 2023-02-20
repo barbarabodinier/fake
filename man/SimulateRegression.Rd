@@ -155,6 +155,7 @@ Other simulation functions:
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateCorrelation}()},
-\code{\link{SimulateGraphical}()}
+\code{\link{SimulateGraphical}()},
+\code{\link{SimulateStructural}()}
 }
 \concept{simulation functions}

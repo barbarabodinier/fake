@@ -478,3 +478,83 @@ ExpectedConcordance <- function(probabilities) {
   }
   return(expected_concordant_pairs / expected_number_pairs)
 }
+
+
+#' Layered Directed Acyclic Graph
+#'
+#' Returns the adjacency matrix of a layered Directed Acyclic Graph. In this
+#' graph, arrows go from all members of a layer to all members of the following
+#' layers. There are no arrows between members of the same layer.
+#'
+#' @param layers list of vectors. Each vector in the list corresponds to a
+#'   layer. There are as many layers as items in the list. Alternatively, this
+#'   argument can be a vector of the number of variables per layer.
+#' @param n_manifest vector of the number of manifest (observed) variables
+#'   measuring each of the latent variables. If \code{n_manifest} is provided,
+#'   the variables defined in argument \code{layers} are considered latent. All
+#'   entries of \code{n_manifest} must be strictly positive.
+#'
+#' @return The adjacency matrix of the layered Directed Acyclic Graph.
+#'
+#' @examples
+#' # Example with 3 layers specified in a list
+#' layers <- list(
+#'   c("x1", "x2", "x3"),
+#'   c("x4", "x5"),
+#'   c("x6", "x7", "x8")
+#' )
+#' dag <- LayeredDAG(layers)
+#' plot(dag)
+#'
+#' # Example with 3 layers specified in a vector
+#' dag <- LayeredDAG(layers = c(3, 2, 3))
+#' plot(dag)
+#'
+#' @export
+LayeredDAG <- function(layers, n_manifest = NULL) {
+  # Extracting the number of members per layer
+  if (is.list(layers)) {
+    pk <- sapply(layers, length)
+  } else {
+    pk <- layers
+  }
+
+  # Creating the adjacency matrix
+  adjacency <- BlockMatrix(pk)
+  adjacency[which(adjacency %in% diag(BlockStructure(pk)))] <- 0
+  adjacency <- ifelse(adjacency != 0, yes = 1, no = 0)
+  adjacency[lower.tri(adjacency)] <- 0
+
+  # Addition of manifest variables for each latent variable
+  if (!is.null(n_manifest)) {
+    # Expanding the vector if needed
+    if (length(n_manifest) != ncol(adjacency)) {
+      n_manifest <- rep(n_manifest[1], ncol(adjacency))
+    }
+
+    # Adding manifest variables in adjacency matrix
+    tmpfactor <- as.factor(rep.int(1:length(n_manifest), times = n_manifest))
+    submatrix_manifest <- t(stats::model.matrix(~ tmpfactor - 1))
+    adjacency <- cbind(submatrix_manifest, adjacency)
+    adjacency <- rbind(matrix(0, ncol = ncol(adjacency), nrow = ncol(adjacency) - nrow(adjacency)), adjacency)
+  }
+
+  # Defining row and column names
+  if (!is.null(n_manifest)) {
+    ids_manifest <- seq(1, sum(n_manifest))
+    ids_latent <- seq(sum(n_manifest) + 1, ncol(adjacency))
+    rownames(adjacency)[ids_manifest] <- colnames(adjacency)[ids_manifest] <- paste0("x", seq(1, length(ids_manifest)))
+    rownames(adjacency)[ids_latent] <- colnames(adjacency)[ids_latent] <- paste0("f", seq(1, length(ids_latent)))
+  } else {
+    if (is.list(layers)) {
+      colnames(adjacency) <- rownames(adjacency) <- unlist(layers)
+    } else {
+      colnames(adjacency) <- rownames(adjacency) <- paste0("x", 1:sum(pk))
+    }
+  }
+
+  # Defining the class of the output
+  class(adjacency) <- c("matrix", "adjacency_matrix")
+
+  return(adjacency)
+}

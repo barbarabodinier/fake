@@ -261,6 +261,9 @@ SimulateGraphical <- function(n = 100, pk = 10, theta = NULL,
   colnames(x) <- paste0("var", 1:ncol(x))
   rownames(x) <- paste0("obs", 1:nrow(x))
 
+  # Defining the class of theta
+  class(theta) <- c("matrix", "adjacency_matrix")
+
   if (output_matrices) {
     out <- list(
       data = x, theta = theta,
@@ -1079,6 +1082,303 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
 
   # Defining the class
   class(out) <- "simulation_clustering"
+
+  return(out)
+}
+
+
+#' Data simulation for Structural Causal Modelling
+#'
+#' Simulates data from a multivariate Normal distribution where relationships
+#' between the variables correspond to a Structural Causal Model (SCM). To
+#' ensure that the generated SCM is identifiable, the nodes are organised by
+#' layers, with no causal effects within layers.
+#'
+#' @inheritParams SimulateGraphical
+#' @param pk vector of the number of (latent) variables per layer.
+#' @param theta optional binary adjacency matrix of the Directed Acyclic Graph
+#'   (DAG) of causal relationships. This DAG must have a structure with layers
+#'   so that a variable can only be a parent of variable in one of the following
+#'   layers (see \code{\link{LayeredDAG}} for examples). The layers must be
+#'   provided in \code{pk}.
+#' @param n_manifest vector of the number of manifest (observed) variables
+#'   measuring each of the latent variables. If \code{n_manifest=NULL}, there
+#'   are \code{sum(pk)} manifest variables and no latent variables. Otherwise,
+#'   there are \code{sum(pk)} latent variables and \code{sum(n_manifest)}
+#'   manifest variables. All entries of \code{n_manifest} must be strictly
+#'   positive.
+#' @param nu_between probability of having an edge between two nodes belonging
+#'   to different layers, as defined in \code{pk}. If \code{length(pk)=1}, this
+#'   is the expected density of the graph.
+#' @param v_between vector defining the (range of) nonzero path coefficients. If
+#'   \code{continuous=FALSE}, \code{v_between} is the set of possible values. If
+#'   \code{continuous=TRUE}, \code{v_between} is the range of possible values.
+#' @param v_sign vector of possible signs for path coefficients. Possible inputs
+#'   are: \code{1} for positive coefficients, \code{-1} for negative
+#'   coefficients, or \code{c(-1, 1)} for both positive and negative
+#'   coefficients.
+#' @param continuous logical indicating whether to sample path coefficients from
+#'   a uniform distribution between the minimum and maximum values in
+#'   \code{v_between} (if \code{continuous=FALSE}) or from proposed values in
+#'   \code{v_between} (if \code{continuous=FALSE}).
+#' @param ev vector of proportions of variance in each of the (latent) variables
+#'   that can be explained by its parents. If there are no latent variables (if
+#'   \code{n_manifest=NULL}), these are the proportions of explained variances
+#'   in the manifest variables. Otherwise (if \code{n_manifest} is provided),
+#'   these are the proportions of explained variances in the latent variables.
+#' @param ev_manifest vector of proportions of variance in each of the manifest
+#'   variable that can be explained by its latent parent. Only used if
+#'   \code{n_manifest} is provided.
+#' @param output_matrices logical indicating if the true path coefficients,
+#'   residual variances, and precision and (partial) correlation matrices should
+#'   be included in the output.
+#'
+#' @seealso \code{\link{SimulatePrecision}}, \code{\link{MakePositiveDefinite}},
+#'   \code{\link{Contrast}}
+#'
+#' @family simulation functions
+#'
+#' @references \insertRef{RegSEM}{fake}
+#'
+#' @return A list with: \item{data}{simulated data with \code{n} observations
+#'   for manifest variables.} \item{theta}{adjacency matrix of the simulated
+#'   Directed Acyclic Graph encoding causal relationships.}
+#'   \item{Amat}{simulated (true) asymmetric matrix A in RAM notation. Only
+#'   returned if \code{output_matrices=TRUE}.} \item{Smat}{simulated (true)
+#'   symmetric matrix S in RAM notation. Only returned if
+#'   \code{output_matrices=TRUE}.} \item{Fmat}{simulated (true) filter matrix F
+#'   in RAM notation. Only returned if \code{output_matrices=TRUE}.}
+#'   \item{sigma}{simulated (true) covariance matrix. Only returned if
+#'   \code{output_matrices=TRUE}.}
+#'
+#' @examples
+#' # Simulation of a layered SCM
+#' set.seed(1)
+#' pk <- c(3, 5, 4)
+#' simul <- SimulateStructural(n = 100, pk = pk)
+#' print(simul)
+#' summary(simul)
+#' plot(simul)
+#'
+#' # Visualisation of the layers
+#' if (requireNamespace("igraph", quietly = TRUE)) {
+#'   mygraph <- plot(simul)
+#'   igraph::plot.igraph(mygraph,
+#'     layout = igraph::layout_with_sugiyama(mygraph,
+#'       layers = rep.int(1:length(pk), times = pk)
+#'     )
+#'   )
+#' }
+#'
+#' # Choosing the proportions of explained variances for endogenous variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 1000,
+#'   pk = c(2, 3),
+#'   nu_between = 1,
+#'   ev = c(NA, NA, 0.5, 0.7, 0.9),
+#'   output_matrices = TRUE
+#' )
+#'
+#' # Checking expected proportions of explained variances
+#' 1 - simul$Smat["x3", "x3"] / simul$sigma["x3", "x3"]
+#' 1 - simul$Smat["x4", "x4"] / simul$sigma["x4", "x4"]
+#' 1 - simul$Smat["x5", "x5"] / simul$sigma["x5", "x5"]
+#'
+#' # Checking observed proportions of explained variances (R-squared)
+#' summary(lm(simul$data[, 3] ~ simul$data[, which(simul$theta[, 3] != 0)]))
+#' summary(lm(simul$data[, 4] ~ simul$data[, which(simul$theta[, 4] != 0)]))
+#' summary(lm(simul$data[, 5] ~ simul$data[, which(simul$theta[, 5] != 0)]))
+#'
+#' # Simulation including latent and manifest variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 100,
+#'   pk = c(2, 3),
+#'   n_manifest = c(2, 3, 2, 1, 2)
+#' )
+#' plot(simul)
+#'
+#' # Showing manifest variables in red
+#' if (requireNamespace("igraph", quietly = TRUE)) {
+#'   mygraph <- plot(simul)
+#'   ids <- which(igraph::V(mygraph)$name %in% colnames(simul$data))
+#'   igraph::V(mygraph)$color[ids] <- "red"
+#'   igraph::V(mygraph)$frame.color[ids] <- "red"
+#'   plot(mygraph)
+#' }
+#'
+#' # Choosing proportions of explained variances for latent and manifest variables
+#' set.seed(1)
+#' simul <- SimulateStructural(
+#'   n = 100,
+#'   pk = c(3, 2),
+#'   n_manifest = c(2, 3, 2, 1, 2),
+#'   ev = c(NA, NA, NA, 0.7, 0.9),
+#'   ev_manifest = 0.8,
+#'   output_matrices = TRUE
+#' )
+#' plot(simul)
+#'
+#' # Checking expected proportions of explained variances
+#' (simul$sigma_full["f4", "f4"] - simul$Smat["f4", "f4"]) / simul$sigma_full["f4", "f4"]
+#' (simul$sigma_full["f5", "f5"] - simul$Smat["f5", "f5"]) / simul$sigma_full["f5", "f5"]
+#' (simul$sigma_full["x1", "x1"] - simul$Smat["x1", "x1"]) / simul$sigma_full["x1", "x1"]
+#'
+#' @export
+SimulateStructural <- function(n = 100,
+                               pk = c(5, 5, 5),
+                               theta = NULL,
+                               n_manifest = NULL,
+                               nu_between = 0.5,
+                               v_between = c(0.5, 1),
+                               v_sign = c(-1, 1),
+                               continuous = TRUE,
+                               ev = 0.5,
+                               ev_manifest = 0.8,
+                               output_matrices = FALSE) {
+  # Simulation of layered directed acyclic graph between latent variables
+  if (is.null(theta)) {
+    theta <- SimulateAdjacency(
+      pk = pk,
+      topology = "random",
+      nu_within = 0,
+      nu_between = nu_between
+    )
+    theta[lower.tri(theta)] <- 0
+  } else {
+    if (ncol(theta) != sum(pk)) {
+      stop("Arguments 'theta' and 'pk' are not compatible. Please make sure that 'theta' is the adjacency matrix of a DAG with layers and that 'pk' encodes this layer structure.")
+    }
+  }
+
+  # Addition of manifest variables for each latent variable
+  if (!is.null(n_manifest)) {
+    p_latent <- ncol(theta)
+
+    # Expanding the vector if needed
+    if (length(n_manifest) != ncol(theta)) {
+      n_manifest <- rep(n_manifest[1], ncol(theta))
+    }
+
+    # Adding manifest variables in adjacency matrix
+    tmpfactor <- as.factor(rep.int(1:length(n_manifest), times = n_manifest))
+    submatrix_manifest <- t(stats::model.matrix(~ tmpfactor - 1))
+    theta <- cbind(submatrix_manifest, theta)
+    theta <- rbind(matrix(0, ncol = ncol(theta), nrow = ncol(theta) - nrow(theta)), theta)
+
+    # Defining row and column names
+    rownames(theta) <- colnames(theta) <- paste0("var", 1:ncol(theta))
+  } else {
+    p_latent <- 0
+  }
+
+  # Checking the length of proportions of explained variances
+  if (length(ev) != sum(pk)) {
+    ev <- rep(ev[1], sum(pk))
+  }
+  if (!is.null(n_manifest)) {
+    if (length(ev_manifest) != sum(n_manifest)) {
+      ev_manifest <- rep(ev_manifest[1], sum(n_manifest))
+    }
+    ev <- c(ev_manifest, ev)
+  }
+
+  # Setting p as the total number of variables (latent and manifest)
+  p <- pk <- ncol(theta)
+
+  # Defining row and column names
+  if (!is.null(n_manifest)) {
+    ids_manifest <- seq(1, sum(n_manifest))
+    ids_latent <- seq(sum(n_manifest) + 1, ncol(theta))
+    rownames(theta)[ids_manifest] <- colnames(theta)[ids_manifest] <- paste0("x", seq(1, length(ids_manifest)))
+    rownames(theta)[ids_latent] <- colnames(theta)[ids_latent] <- paste0("f", seq(1, length(ids_latent)))
+  } else {
+    ids_manifest <- seq(1, ncol(theta))
+    colnames(theta) <- rownames(theta) <- paste0("x", 1:sum(pk))
+  }
+
+  # Simulating path coefficients (no need to be p.d.)
+  set.seed(1)
+  random_mat <- SimulateSymmetricMatrix(
+    pk = p,
+    v_within = v_between,
+    v_between = v_between,
+    v_sign = v_sign,
+    continuous = continuous
+  )
+  Amat <- t(random_mat * abs(theta))
+
+  # Defining identity matrix
+  Imat <- diag(p)
+  rownames(Imat) <- colnames(Imat) <- colnames(Amat)
+
+  # Initialising residual covariance matrix S
+  Smat <- diag(p)
+  rownames(Smat) <- colnames(Smat) <- colnames(Amat)
+
+  # Defining residual variances to reach desired proportions of explained variances
+  if (is.null(n_manifest)) {
+    ids_linked <- ids_manifest
+  } else {
+    ids_linked <- ids_latent
+  }
+  for (j in ids_linked) {
+    tmpsigma <- solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat))
+    if (sum(theta[, j] > 0)) {
+      tmppreds <- which(theta[, j] == 1)
+      tmpsigma <- tmpsigma[tmppreds, tmppreds]
+      tmpprod <- t(Amat[j, tmppreds, drop = FALSE]) %*% Amat[j, tmppreds, drop = FALSE]
+      var_yhat <- sum(diag(tmpprod) * diag(tmpsigma)) + 2 * sum(tmpprod[upper.tri(tmpprod)] * tmpsigma[upper.tri(tmpsigma)])
+      Smat[j, j] <- var_yhat * (1 - ev[j]) / ev[j]
+    }
+  }
+
+  # Defining residual variances of manifest variables (in the presence of latent variables)
+  if (!is.null(n_manifest)) {
+    # Computing the covariance matrix for latent variables only
+    sigma_latent <- solve(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]) %*% Smat[ids_latent, ids_latent] %*% solve(t(Imat[ids_latent, ids_latent] - Amat[ids_latent, ids_latent]))
+
+    # Defining residual variances of manifest variables
+    diag(Smat)[ids_manifest] <- (apply(Amat[ids_manifest, ], 1, sum)^2) * rep.int(diag(sigma_latent), times = n_manifest) * (1 - ev_manifest) / ev_manifest
+  }
+
+  # Defining filter matrix
+  Fmat <- Imat[seq(1, p - p_latent), ]
+
+  # Computing corresponding covariance matrix (p.d. by definition)
+  sigma_full <- solve(Imat - Amat) %*% Smat %*% solve(t(Imat - Amat))
+
+  # Computing corresponding covariance matrix (p.d. by definition)
+  sigma <- Fmat %*% sigma_full %*% t(Fmat)
+
+  # Simulating data from multivariate normal distribution
+  x <- MASS::mvrnorm(n, rep(0, ncol(sigma)), sigma)
+  colnames(x) <- colnames(theta)[ids_manifest]
+  rownames(x) <- paste0("obs", 1:nrow(x))
+
+  # Assigning names to vector of proportions of explained variances
+  names(ev) <- colnames(theta)
+
+  # Defining the class of theta
+  class(theta) <- c("matrix", "adjacency_matrix")
+
+  # Preparing the output
+  if (output_matrices) {
+    out <- list(
+      data = x, theta = theta, ev = ev,
+      Amat = Amat, Smat = Smat, Fmat = Fmat,
+      sigma = sigma
+    )
+    if (!is.null(n_manifest)) {
+      out <- c(out, list(sigma_full = sigma_full))
+    }
+  } else {
+    out <- list(data = x, theta = theta, ev = ev)
+  }
+
+  # Defining the class
+  class(out) <- "simulation_structural_causal_model"
 
   return(out)
 }

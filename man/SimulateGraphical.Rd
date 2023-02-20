@@ -259,6 +259,7 @@ Other simulation functions:
 \code{\link{SimulateClustering}()},
 \code{\link{SimulateComponents}()},
 \code{\link{SimulateCorrelation}()},
-\code{\link{SimulateRegression}()}
+\code{\link{SimulateRegression}()},
+\code{\link{SimulateStructural}()}
 }
 \concept{simulation functions}
