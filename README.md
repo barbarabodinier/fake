@@ -6,7 +6,7 @@
 <!-- badges: start -->
 
 [![CRAN
-status](https://www.r-pkg.org/badges/version/fake)](https://CRAN.R-project.org/package=fake)
+version](https://www.r-pkg.org/badges/version/fake)](https://cran.r-project.org/package=fake)
 [![CRAN RStudio mirror
 downloads](https://cranlogs.r-pkg.org/badges/last-month/fake?color=blue)](https://r-pkg.org/pkg/fake)
 ![GitHub last
@@ -59,6 +59,14 @@ head(simul$ydata)
 set.seed(1)
 simul <- SimulateRegression(n = 100, pk = 20, family = "binomial")
 head(simul$ydata)
+```
+
+### Structural causal model
+
+``` r
+set.seed(1)
+simul <- SimulateStructural(n = 100, pk = c(3, 2, 3))
+head(simul$data)
 ```
 
 ### Gaussian graphical model
