@@ -995,11 +995,12 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
 
   # Defining variables contributing to the clustering
   if (is.null(theta_xc)) {
-    theta_xc <- matrix(rep(
-      SamplePredictors(pk = sum(pk), q = 1, nu = nu_xc, orthogonal = TRUE)[, 1],
-      length(n)
-    ),
-    nrow = length(n), byrow = TRUE
+    theta_xc <- matrix(
+      rep(
+        SamplePredictors(pk = sum(pk), q = 1, nu = nu_xc, orthogonal = TRUE)[, 1],
+        length(n)
+      ),
+      nrow = length(n), byrow = TRUE
     )
   }
   rownames(theta_xc) <- paste0("cluster", 1:nrow(theta_xc))
@@ -1160,16 +1161,6 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
 #' summary(simul)
 #' plot(simul)
 #'
-#' # Visualisation of the layers
-#' if (requireNamespace("igraph", quietly = TRUE)) {
-#'   mygraph <- plot(simul)
-#'   igraph::plot.igraph(mygraph,
-#'     layout = igraph::layout_with_sugiyama(mygraph,
-#'       layers = rep.int(1:length(pk), times = pk)
-#'     )
-#'   )
-#' }
-#'
 #' # Choosing the proportions of explained variances for endogenous variables
 #' set.seed(1)
 #' simul <- SimulateStructural(
@@ -1237,6 +1228,9 @@ SimulateStructural <- function(n = 100,
                                ev = 0.5,
                                ev_manifest = 0.8,
                                output_matrices = FALSE) {
+  # Storing the layers
+  layers <- pk
+
   # Simulation of layered directed acyclic graph between latent variables
   if (is.null(theta)) {
     theta <- SimulateAdjacency(
@@ -1246,9 +1240,11 @@ SimulateStructural <- function(n = 100,
       nu_between = nu_between
     )
     theta[lower.tri(theta)] <- 0
+    rownames(theta) <- colnames(theta) <- NULL
   } else {
     if (ncol(theta) != sum(pk)) {
-      stop("Arguments 'theta' and 'pk' are not compatible. Please make sure that 'theta' is the adjacency matrix of a DAG with layers and that 'pk' encodes this layer structure.")
+      pk <- ncol(theta)
+      # stop("Arguments 'theta' and 'pk' are not compatible. Please make sure that 'theta' is the adjacency matrix of a DAG with layers and that 'pk' encodes this layer structure.")
     }
   }
 
@@ -1261,14 +1257,20 @@ SimulateStructural <- function(n = 100,
       n_manifest <- rep(n_manifest[1], ncol(theta))
     }
 
+    # Storing original variable names
+    if (!is.null(colnames(theta))) {
+      var_names <- colnames(theta)
+    }
+    if (is.null(colnames(theta)) | (any(paste0("x", 1:sum(n_manifest)) %in% colnames(theta)))) {
+      var_names <- paste0("f", 1:ncol(theta))
+    }
+
     # Adding manifest variables in adjacency matrix
     tmpfactor <- as.factor(rep.int(1:length(n_manifest), times = n_manifest))
     submatrix_manifest <- t(stats::model.matrix(~ tmpfactor - 1))
     theta <- cbind(submatrix_manifest, theta)
     theta <- rbind(matrix(0, ncol = ncol(theta), nrow = ncol(theta) - nrow(theta)), theta)
-
-    # Defining row and column names
-    rownames(theta) <- colnames(theta) <- paste0("var", 1:ncol(theta))
+    rownames(theta) <- colnames(theta) <- c(paste0("x", 1:ncol(submatrix_manifest)), var_names)
   } else {
     p_latent <- 0
   }
@@ -1291,11 +1293,15 @@ SimulateStructural <- function(n = 100,
   if (!is.null(n_manifest)) {
     ids_manifest <- seq(1, sum(n_manifest))
     ids_latent <- seq(sum(n_manifest) + 1, ncol(theta))
-    rownames(theta)[ids_manifest] <- colnames(theta)[ids_manifest] <- paste0("x", seq(1, length(ids_manifest)))
-    rownames(theta)[ids_latent] <- colnames(theta)[ids_latent] <- paste0("f", seq(1, length(ids_latent)))
+    if (is.null(colnames(theta))) {
+      rownames(theta)[ids_manifest] <- colnames(theta)[ids_manifest] <- paste0("x", seq(1, length(ids_manifest)))
+      rownames(theta)[ids_latent] <- colnames(theta)[ids_latent] <- paste0("f", seq(1, length(ids_latent)))
+    }
   } else {
     ids_manifest <- seq(1, ncol(theta))
-    colnames(theta) <- rownames(theta) <- paste0("x", 1:sum(pk))
+    if (is.null(colnames(theta))) {
+      colnames(theta) <- rownames(theta) <- paste0("x", 1:sum(pk))
+    }
   }
 
   # Simulating path coefficients (no need to be p.d.)
@@ -1367,6 +1373,7 @@ SimulateStructural <- function(n = 100,
   if (output_matrices) {
     out <- list(
       data = x, theta = theta, ev = ev,
+      pk = layers, n_manifest = n_manifest,
       Amat = Amat, Smat = Smat, Fmat = Fmat,
       sigma = sigma
     )
@@ -1374,7 +1381,10 @@ SimulateStructural <- function(n = 100,
       out <- c(out, list(sigma_full = sigma_full))
     }
   } else {
-    out <- list(data = x, theta = theta, ev = ev)
+    out <- list(
+      data = x, theta = theta, ev = ev,
+      pk = layers, n_manifest = n_manifest
+    )
   }
 
   # Defining the class

@@ -8,7 +8,7 @@ Description: This R package can be used to generate artificial data conditionall
 License: GPL (>= 3)
 Language: en-GB
 Encoding: UTF-8
-RoxygenNote: 7.2.0
+RoxygenNote: 7.2.3
 Imports: 
     huge,
     igraph,

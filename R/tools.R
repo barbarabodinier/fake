@@ -124,7 +124,6 @@
 MakePositiveDefinite <- function(omega, pd_strategy = "diagonally_dominant",
                                  ev_xx = NULL, scale = TRUE, u_list = c(1e-10, 1),
                                  tol = .Machine$double.eps^0.25) {
-
   # Making positive definite using diagonally dominance
   if (pd_strategy == "diagonally_dominant") {
     # Constructing the diagonal as the sum of entries

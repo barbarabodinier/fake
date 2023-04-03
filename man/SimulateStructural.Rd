@@ -95,16 +95,6 @@ print(simul)
 summary(simul)
 plot(simul)
 
-# Visualisation of the layers
-if (requireNamespace("igraph", quietly = TRUE)) {
-  mygraph <- plot(simul)
-  igraph::plot.igraph(mygraph,
-    layout = igraph::layout_with_sugiyama(mygraph,
-      layers = rep.int(1:length(pk), times = pk)
-    )
-  )
-}
-
 # Choosing the proportions of explained variances for endogenous variables
 set.seed(1)
 simul <- SimulateStructural(

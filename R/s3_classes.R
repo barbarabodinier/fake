@@ -137,6 +137,9 @@ plot.simulation_structural_causal_model <- function(x, ...) {
   mydegrees <- igraph::degree(mygraph)
   igraph::V(mygraph)$size <- 10
   igraph::V(mygraph)$color <- "skyblue"
+  if (!is.null(x$n_manifest)) {
+    igraph::V(mygraph)$color[1:sum(x$n_manifest)] <- "tomato"
+  }
   igraph::V(mygraph)$frame.color <- igraph::V(mygraph)$color
   igraph::V(mygraph)$label.family <- "sans"
   igraph::V(mygraph)$label.cex <- 1
@@ -146,7 +149,14 @@ plot.simulation_structural_causal_model <- function(x, ...) {
   igraph::E(mygraph)$color <- "grey60"
   igraph::E(mygraph)$width <- 0.5
 
-  igraph::plot.igraph(mygraph, ...)
+  # Defining the layout
+  if ((length(x$pk) > 1) & (is.null(x$n_manifest))) {
+    layout <- igraph::layout_with_sugiyama(mygraph, layers = rep.int(1:length(x$pk), times = x$pk))
+  } else {
+    layout <- igraph::layout_with_fr(mygraph)
+  }
+
+  igraph::plot.igraph(mygraph, layout = layout, ...)
 
   return(invisible(mygraph))
 }
