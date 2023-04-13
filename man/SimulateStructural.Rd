@@ -87,6 +87,7 @@ ensure that the generated SCM is identifiable, the nodes are organised by
 layers, with no causal effects within layers.
 }
 \examples{
+\donttest{
 # Simulation of a layered SCM
 set.seed(1)
 pk <- c(3, 5, 4)
@@ -149,7 +150,7 @@ plot(simul)
 (simul$sigma_full["f4", "f4"] - simul$Smat["f4", "f4"]) / simul$sigma_full["f4", "f4"]
 (simul$sigma_full["f5", "f5"] - simul$Smat["f5", "f5"]) / simul$sigma_full["f5", "f5"]
 (simul$sigma_full["x1", "x1"] - simul$Smat["x1", "x1"]) / simul$sigma_full["x1", "x1"]
-
+}
 }
 \references{
 \insertRef{RegSEM}{fake}

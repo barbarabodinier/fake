@@ -1153,6 +1153,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
 #'   \code{output_matrices=TRUE}.}
 #'
 #' @examples
+#' \donttest{
 #' # Simulation of a layered SCM
 #' set.seed(1)
 #' pk <- c(3, 5, 4)
@@ -1215,7 +1216,7 @@ SimulateClustering <- function(n = c(10, 10), pk = 10, sigma = NULL,
 #' (simul$sigma_full["f4", "f4"] - simul$Smat["f4", "f4"]) / simul$sigma_full["f4", "f4"]
 #' (simul$sigma_full["f5", "f5"] - simul$Smat["f5", "f5"]) / simul$sigma_full["f5", "f5"]
 #' (simul$sigma_full["x1", "x1"] - simul$Smat["x1", "x1"]) / simul$sigma_full["x1", "x1"]
-#'
+#' }
 #' @export
 SimulateStructural <- function(n = 100,
                                pk = c(5, 5, 5),

@@ -1,3 +1,8 @@
+# fake version 1.4.0
+
+* Added functions LayeredDAG() and SimulateStructural() for simulation from a linear structural equation model
+* Changed the graph layout in visualisation functions
+
 # fake version 1.3.0
 
 * Added function SimulateClustering() for simulation from a Gaussian mixture
