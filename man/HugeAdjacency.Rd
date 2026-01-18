@@ -4,23 +4,16 @@
 \alias{HugeAdjacency}
 \title{Simulation of undirected graph}
 \usage{
-HugeAdjacency(pk = 10, topology = "random", nu = 0.1, ...)
+HugeAdjacency(pk = 10, topology = "random", nu = 0.1)
 }
 \arguments{
 \item{pk}{number of nodes.}
 
-\item{topology}{topology of the simulated graph. If using
-\code{implementation=HugeAdjacency}, possible values are listed for the
-argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
-"random", "hub", "cluster", "band" and "scale-free".}
+\item{topology}{topology of the simulated graph. Possible arguments are:
+"random", or "scale-free".}
 
 \item{nu}{expected density (number of edges over the number of node pairs) of
-the graph. This argument is only used for \code{topology="random"} or
-\code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}).}
-
-\item{...}{additional arguments to be passed to
-\code{\link[huge]{huge.generator}}.}
+the graph. This argument is only used for \code{topology="random"}.}
 }
 \value{
 A symmetric adjacency matrix encoding an unweighted, undirected graph

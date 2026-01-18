@@ -36,25 +36,21 @@ groups. This argument is only used if \code{theta} is not provided.}
 conditional independence structure.}
 
 \item{implementation}{function for simulation of the graph. By default,
-algorithms implemented in \code{\link[huge]{huge.generator}} are used.
-Alternatively, a user-defined function can be used. It must take \code{pk},
-\code{topology} and \code{nu} as arguments and return a
+algorithms implemented in \code{\link[igraph]{igraph}}
+are used. Alternatively, a user-defined function can be used. It must take
+\code{pk}, \code{topology} and \code{nu} as arguments and return a
 \code{(sum(pk)*(sum(pk)))} binary and symmetric matrix for which diagonal
 entries are all equal to zero. This function is only applied if
 \code{theta} is not provided.}
 
-\item{topology}{topology of the simulated graph. If using
-\code{implementation=HugeAdjacency}, possible values are listed for the
-argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
-"random", "hub", "cluster", "band" and "scale-free".}
+\item{topology}{topology of the simulated graph. Possible arguments are:
+"random", or "scale-free".}
 
 \item{nu_within}{probability of having an edge between two nodes belonging to
 the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
-this argument is only used for \code{topology="random"} or
-\code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
-provided.}
+this argument is only used for \code{topology="random"}. Only used if
+\code{nu_mat} is not provided.}
 
 \item{nu_between}{probability of having an edge between two nodes belonging
 to different groups, as defined in \code{pk}. By default, the same density

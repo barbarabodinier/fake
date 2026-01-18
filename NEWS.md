@@ -1,3 +1,7 @@
+# fake version 1.5.0
+
+* Removed the dependency on huge
+
 # fake version 1.4.0
 
 * Added functions LayeredDAG() and SimulateStructural() for simulation from a linear structural equation model

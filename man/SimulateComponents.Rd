@@ -40,10 +40,8 @@ be set to zero.}
 \item{nu_within}{probability of having an edge between two nodes belonging to
 the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
-this argument is only used for \code{topology="random"} or
-\code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
-provided.}
+this argument is only used for \code{topology="random"}. Only used if
+\code{nu_mat} is not provided.}
 
 \item{v_within}{vector defining the (range of) nonzero entries in the
 diagonal blocks of the precision matrix. These values must be between -1

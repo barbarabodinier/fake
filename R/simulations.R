@@ -11,23 +11,19 @@
 #' @param theta optional binary and symmetric adjacency matrix encoding the
 #'   conditional independence structure.
 #' @param implementation function for simulation of the graph. By default,
-#'   algorithms implemented in \code{\link[huge]{huge.generator}} are used.
-#'   Alternatively, a user-defined function can be used. It must take \code{pk},
-#'   \code{topology} and \code{nu} as arguments and return a
+#'   algorithms implemented in \code{\link[igraph]{igraph}}
+#'   are used. Alternatively, a user-defined function can be used. It must take
+#'   \code{pk}, \code{topology} and \code{nu} as arguments and return a
 #'   \code{(sum(pk)*(sum(pk)))} binary and symmetric matrix for which diagonal
 #'   entries are all equal to zero. This function is only applied if
 #'   \code{theta} is not provided.
-#' @param topology topology of the simulated graph. If using
-#'   \code{implementation=HugeAdjacency}, possible values are listed for the
-#'   argument \code{graph} of \code{\link[huge]{huge.generator}}. These are:
-#'   "random", "hub", "cluster", "band" and "scale-free".
+#' @param topology topology of the simulated graph. Possible arguments are:
+#'   "random", or "scale-free".
 #' @param nu_within probability of having an edge between two nodes belonging to
 #'   the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 #'   the expected density of the graph. If \code{implementation=HugeAdjacency},
-#'   this argument is only used for \code{topology="random"} or
-#'   \code{topology="cluster"} (see argument \code{prob} in
-#'   \code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
-#'   provided.
+#'   this argument is only used for \code{topology="random"}. Only used if
+#'   \code{nu_mat} is not provided.
 #' @param nu_between probability of having an edge between two nodes belonging
 #'   to different groups, as defined in \code{pk}. By default, the same density
 #'   is used for within and between blocks (\code{nu_within}=\code{nu_between}).
@@ -1410,7 +1406,6 @@ SimulateStructural <- function(n = 100,
 #'
 #' @details Random graphs are simulated using the Erdos-Renyi algorithm.
 #'   Scale-free graphs are simulated using a preferential attachment algorithm.
-#'   More details are provided in \code{\link[huge]{huge.generator}}.
 #'
 #' @family simulation functions
 #'
@@ -1554,33 +1549,26 @@ SimulateAdjacency <- function(pk = 10,
 #' @inheritParams SimulateGraphical
 #' @param pk number of nodes.
 #' @param nu expected density (number of edges over the number of node pairs) of
-#'   the graph. This argument is only used for \code{topology="random"} or
-#'   \code{topology="cluster"} (see argument \code{prob} in
-#'   \code{\link[huge]{huge.generator}}).
-#' @param ... additional arguments to be passed to
-#'   \code{\link[huge]{huge.generator}}.
+#'   the graph. This argument is only used for \code{topology="random"}.
 #'
 #' @return A symmetric adjacency matrix encoding an unweighted, undirected graph
 #'   with no self-loops.
 #'
 #' @keywords internal
-HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
-  # Storing extra arguments
-  extra_args <- list(...)
+HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1) {
+  # Generating the graph based on topology
+  n_nodes <- sum(pk)
+  if (topology == "random") {
+    g <- igraph::sample_gnp(n = n_nodes, p = nu, directed = FALSE)
+  } else if (topology == "scale-free") {
+    g <- igraph::sample_pa(n = n_nodes, m = 1, directed = FALSE)
+  } else {
+    stop("Argument 'topology' should be 'random' or 'scale-free'.")
+  }
 
-  # Extracting relevant extra arguments
-  tmp_extra_args <- MatchingArguments(extra_args = extra_args, FUN = huge::huge.generator)
-  tmp_extra_args <- tmp_extra_args[!names(tmp_extra_args) %in% c("n", "d", "prob", "graph", "verbose")]
-
-  # Running simulation model
-  mymodel <- do.call(huge::huge.generator, args = c(
-    list(
-      n = 2, d = sum(pk), prob = nu,
-      graph = topology, verbose = FALSE
-    ),
-    tmp_extra_args
-  ))
-  theta <- as.matrix(mymodel$theta)
+  # Extracting the adjacency matrix
+  theta <- igraph::as_adjacency_matrix(g, sparse = FALSE)
+  theta[theta > 0] <- 1
 
   # Re-organising the variables to avoid having centrality related to variable ID (e.g. for scale-free models)
   ids <- sample(ncol(theta))
@@ -1588,8 +1576,6 @@ HugeAdjacency <- function(pk = 10, topology = "random", nu = 0.1, ...) {
 
   return(theta)
 }
-
-
 
 
 #' Simulation of precision matrix

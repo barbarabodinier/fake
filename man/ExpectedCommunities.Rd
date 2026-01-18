@@ -16,10 +16,8 @@ groups. This argument is only used if \code{theta} is not provided.}
 \item{nu_within}{probability of having an edge between two nodes belonging to
 the same group, as defined in \code{pk}. If \code{length(pk)=1}, this is
 the expected density of the graph. If \code{implementation=HugeAdjacency},
-this argument is only used for \code{topology="random"} or
-\code{topology="cluster"} (see argument \code{prob} in
-\code{\link[huge]{huge.generator}}). Only used if \code{nu_mat} is not
-provided.}
+this argument is only used for \code{topology="random"}. Only used if
+\code{nu_mat} is not provided.}
 
 \item{nu_between}{probability of having an edge between two nodes belonging
 to different groups, as defined in \code{pk}. By default, the same density
